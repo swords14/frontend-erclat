@@ -1,0 +1,113 @@
+/* 1. Diretivas do Tailwind SEMPRE no topo do arquivo */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 2. Estilos base customizados (opcional) */
+body {
+  @apply bg-white text-gray-800 dark:bg-gray-900 dark:text-gray-100;
+}
+
+/* 3. Um ÚNICO @layer para todos os componentes customizados */
+@layer components {
+  /* Classes de formulário */
+  .input-form {
+    @apply mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition;
+  }
+  .label-form {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
+  }
+  
+  /* Classes de botão */
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition shadow-md disabled:bg-indigo-400 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+     @apply px-4 py-2 rounded-lg text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition;
+  }
+
+  /* Classes de KPI */
+  .kpi-card { 
+    @apply bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md flex items-center gap-4;
+  }
+  .kpi-title { 
+    @apply text-sm text-gray-500; 
+  }
+  .kpi-value { 
+    @apply text-2xl font-bold; 
+  }
+
+  /* Outras classes de componentes */
+  .status-badge { 
+    @apply px-2 py-1 text-xs font-semibold rounded-full flex items-center gap-1.5;
+  }
+  .table-header {
+     @apply bg-gray-50 dark:bg-gray-700 text-sm text-gray-600 dark:text-gray-300 uppercase;
+  }
+
+  /* Classes de eventos para o FullCalendar */
+  .evento-confirmado {
+    @apply bg-green-500 border-green-500 text-white cursor-pointer;
+  }
+  .evento-pendente {
+    @apply bg-yellow-500 border-yellow-500 text-white cursor-pointer;
+  }
+  .evento-cancelado {
+    @apply bg-red-500 border-red-500 text-white cursor-pointer;
+  }
+}
+
+/* 4. Estilos customizados e de bibliotecas no final */
+
+/* Estilos para a biblioteca react-date-range */
+.rdrDateDisplayWrapper {
+  background-color: #4f46e5; /* Cor indigo */
+}
+
+/* Estilos de Impressão */
+@media print {
+  /* Esconde tudo que não for o conteúdo do relatório */
+  body > #root > div > aside, /* Esconde a Sidebar */
+  body > #root > div > main > div .report-header, /* Esconde o cabeçalho do relatório */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Garante que o container do relatório use todo o espaço */
+  body > #root > div > main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Remove estilos visuais desnecessários para impressão */
+  .report-container, .kpi-card, .bg-white {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    background: #fff !important;
+    color: #000 !important;
+    border-radius: 0 !important;
+  }
+}
+@layer components {
+    /* ... suas classes .btn-primary, etc. ... */
+    .btn-success {
+        @apply px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition shadow-md;
+    }
+    .btn-danger {
+        @apply px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition shadow-md;
+    }
+}
+
+@keyframes fade-in-scale {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.2s ease-out forwards;
+}
