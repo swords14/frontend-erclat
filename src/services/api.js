@@ -1,6 +1,6 @@
 // Caminho do arquivo: src/services/api.js
 
-const API_URL = 'http://localhost:3333/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const handleApiResponse = async (response) => {
   if (!response.ok) {
