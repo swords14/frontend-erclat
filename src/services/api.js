@@ -9,7 +9,7 @@ const handleApiResponse = async (response) => {
     throw new Error(errorMessage);
   }
   if (response.status === 204) return null;
-  return response.json();a
+  return response.json();
 };
 
 const fetchWithAuth = (url, options = {}) => {
