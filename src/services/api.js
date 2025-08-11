@@ -12,6 +12,9 @@ const handleApiResponse = async (response) => {
   return response.json();
 };
 
+// --- FUNÇÕES DE FETCH CORRIGIDAS ---
+// Adicionado o prefixo '/api' na construção da URL
+
 const fetchWithAuth = (url, options = {}) => {
   const token = localStorage.getItem('authToken'); 
   
@@ -24,13 +27,17 @@ const fetchWithAuth = (url, options = {}) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  return fetch(`${API_URL}${url}`, { ...options, headers }).then(handleApiResponse);
+  // CORREÇÃO APLICADA AQUI
+  return fetch(`${API_URL}/api${url}`, { ...options, headers }).then(handleApiResponse);
 };
 
 const fetchPublic = (url, options = {}) => {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  return fetch(`${API_URL}${url}`, { ...options, headers }).then(handleApiResponse);
+  // CORREÇÃO APLICADA AQUI
+  return fetch(`${API_URL}/api${url}`, { ...options, headers }).then(handleApiResponse);
 };
+
+// --- O RESTANTE DO SEU FICHEIRO PERMANECE IGUAL ---
 
 // --- AUTENTICAÇÃO, PERFIL E EMPRESA ---
 export const login = (credentials) => fetchPublic('/auth/login', { method: 'POST', body: JSON.stringify(credentials) });
@@ -45,7 +52,8 @@ export const uploadAvatar = async (file) => {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const response = await fetch(`${API_URL}/users/me/avatar`, {
+  // CORREÇÃO APLICADA AQUI
+  const response = await fetch(`${API_URL}/api/users/me/avatar`, {
     method: 'POST',
     headers: headers,
     body: formData,
@@ -142,34 +150,30 @@ export const deleteSupplier = (supplierId) => fetchWithAuth(`/suppliers/${suppli
 
 
 // --- ESTOQUE (INVENTORY) ---
-// As funções abaixo estavam faltando. Verifique se os endpoints (ex: '/inventory') estão corretos.
 export const getInventoryItems = () => fetchWithAuth('/inventory');
-
 export const getInventoryCategories = () => fetchWithAuth('/inventory/categories');
 
-// Função para criar item, agora com suporte a upload de imagem
 export const createInventoryItem = (itemData, imageFile) => {
     const formData = new FormData();
-    formData.append('data', JSON.stringify(itemData)); // Envia os dados do item como uma string JSON
+    formData.append('data', JSON.stringify(itemData));
     if (imageFile) {
-        formData.append('image', imageFile); // Adiciona o arquivo de imagem
+        formData.append('image', imageFile);
     }
     
-    // Para FormData, não definimos 'Content-Type', o browser faz isso
     const token = localStorage.getItem('authToken');
     const headers = {};
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    return fetch(`${API_URL}/inventory`, {
+    // CORREÇÃO APLICADA AQUI
+    return fetch(`${API_URL}/api/inventory`, {
         method: 'POST',
         headers: headers,
         body: formData,
     }).then(handleApiResponse);
 };
 
-// Função para atualizar item, agora com suporte a upload de imagem
 export const updateInventoryItem = (itemId, itemData, imageFile) => {
     const formData = new FormData();
     formData.append('data', JSON.stringify(itemData));
@@ -183,7 +187,8 @@ export const updateInventoryItem = (itemId, itemData, imageFile) => {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    return fetch(`${API_URL}/inventory/${itemId}`, {
+    // CORREÇÃO APLICADA AQUI
+    return fetch(`${API_URL}/api/inventory/${itemId}`, {
         method: 'PUT',
         headers: headers,
         body: formData,
