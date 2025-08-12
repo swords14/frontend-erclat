@@ -9,8 +9,8 @@ import { X as IconX, Calendar, Users, CheckCircle, Clock, Tag, Filter, ChevronLe
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-// Importe as funções da sua API central
-import { getCalendarEvents, getAllUsers } from '../services/api'; // Ajuste o caminho se necessário
+// CORRIGIDO: Usa o atalho '@' para garantir que o caminho é encontrado no build.
+import { getCalendarEvents, getAllUsers } from '@/services/api';
 
 // --- COMPONENTES AUXILIARES ---
 const KPICard = ({ title, value, icon: Icon }) => (
@@ -75,11 +75,9 @@ export default function CalendarioEquipe() {
   const [modalAberto, setModalAberto] = useState(false);
   const [eventoClicado, setEventoClicado] = useState(null);
 
-  // --- FUNÇÃO PARA BUSCAR DADOS DO BACK-END (CORRIGIDA) ---
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-        // Usa as funções centralizadas da API
         const [fetchedEvents, fetchedUsers] = await Promise.all([
             getCalendarEvents(),
             getAllUsers()
@@ -98,7 +96,6 @@ export default function CalendarioEquipe() {
     fetchData();
   }, [fetchData]);
 
-  // O resto do seu componente continua igual...
   const { resources, events: calendarEvents } = useMemo(() => {
     let equipeFiltrada = usuarios;
     if (filtroFuncao !== 'todas') {
