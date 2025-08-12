@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Filter, X, Eye, Code, ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 // Importe as funções da sua API central
-import { getAuditLogs, getAllUsers } from '../../services/api'; // Ajuste o caminho se necessário
+import { getAuditLogs, getAllUsers } from '../services/api'; // Ajuste o caminho se necessário
 
 // --- Constantes de Estilo (Tailwind CSS) ---
 const thStyle = "px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider";
