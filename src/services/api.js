@@ -12,32 +12,17 @@ const handleApiResponse = async (response) => {
   return response.json();
 };
 
-// --- FUNÇÕES DE FETCH CORRIGIDAS ---
-// Adicionado o prefixo '/api' na construção da URL
-
 const fetchWithAuth = (url, options = {}) => {
   const token = localStorage.getItem('authToken'); 
-  
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  // CORREÇÃO APLICADA AQUI
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (token) { headers['Authorization'] = `Bearer ${token}`; }
   return fetch(`${API_URL}/api${url}`, { ...options, headers }).then(handleApiResponse);
 };
 
 const fetchPublic = (url, options = {}) => {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  // CORREÇÃO APLICADA AQUI
   return fetch(`${API_URL}/api${url}`, { ...options, headers }).then(handleApiResponse);
 };
-
-// --- O RESTANTE DO SEU FICHEIRO PERMANECE IGUAL ---
 
 // --- AUTENTICAÇÃO, PERFIL E EMPRESA ---
 export const login = (credentials) => fetchPublic('/auth/login', { method: 'POST', body: JSON.stringify(credentials) });
@@ -49,22 +34,16 @@ export const uploadAvatar = async (file) => {
   formData.append('avatar', file);
   const token = localStorage.getItem('authToken');
   const headers = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  // CORREÇÃO APLICADA AQUI
-  const response = await fetch(`${API_URL}/api/users/me/avatar`, {
-    method: 'POST',
-    headers: headers,
-    body: formData,
-  });
+  if (token) { headers['Authorization'] = `Bearer ${token}`; }
+  const response = await fetch(`${API_URL}/api/users/me/avatar`, { method: 'POST', headers: headers, body: formData });
   return handleApiResponse(response);
 };
 export const getCompanyData = () => fetchWithAuth('/company');
 export const updateCompanyData = (data) => fetchWithAuth('/company', { method: 'PUT', body: JSON.stringify(data) });
 
 // --- EQUIPA, FUNÇÕES E PERMISSÕES ---
-export const getAllUsers = () => fetchWithAuth('/users');
+// CORRIGIDO: O caminho correto para buscar utilizadores é /auth/users
+export const getAllUsers = () => fetchWithAuth('/auth/users');
 export const createUser = (data) => fetchWithAuth('/auth/register', { method: 'POST', body: JSON.stringify(data) });
 export const updateUser = (userId, data) => fetchWithAuth(`/users/${userId}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteUser = (userId) => fetchWithAuth(`/users/${userId}`, { method: 'DELETE' });
@@ -73,13 +52,24 @@ export const createRole = (data) => fetchWithAuth('/roles', { method: 'POST', bo
 export const updateRole = (roleId, data) => fetchWithAuth(`/roles/${roleId}`, { method: 'PUT', body: JSON.stringify(data) });
 export const getAllPermissions = () => fetchWithAuth('/permissions');
 
+// --- AUDITORIA ---
+export const getAuditLogs = (params) => fetchWithAuth(`/audit-logs?${params}`);
+
+// --- CALENDÁRIO ---
+export const getCalendarEvents = () => fetchWithAuth('/calendar/events');
+export const getFutureReservations = () => fetchWithAuth('/calendar/future-reservations');
+
+// --- RELATÓRIOS ---
+export const getReportData = (reportName, startDate, endDate) => {
+    const params = new URLSearchParams({ startDate, endDate }).toString();
+    return fetchWithAuth(`/reports/${reportName}?${params}`);
+};
 
 // --- MODELOS DE DOCUMENTOS ---
 export const getAllTemplates = () => fetchWithAuth('/templates');
 export const createTemplate = (data) => fetchWithAuth('/templates', { method: 'POST', body: JSON.stringify(data) });
 export const updateTemplate = (templateId, data) => fetchWithAuth(`/templates/${templateId}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteTemplate = (templateId) => fetchWithAuth(`/templates/${templateId}`, { method: 'DELETE' });
-
 
 // --- ORÇAMENTOS E FUNIL DE VENDAS ---
 export const getAllBudgets = () => fetchWithAuth('/budgets');
@@ -93,15 +83,12 @@ export const getFunnelData = (filters) => {
 };
 export const updateBudgetStatus = (budgetId, newStatus) => fetchWithAuth(`/budgets/${budgetId}/status`, { method: 'PATCH', body: JSON.stringify({ status: newStatus }) });
 
-
 // --- EVENTOS ---
-export const createEventFromBudget = (budgetId) => fetchWithAuth('/events/from-budget', { method: 'POST', body: JSON.stringify({ budgetId }) });
 export const getEvents = () => fetchWithAuth('/events');
 export const createEvent = (data) => fetchWithAuth('/events', { method: 'POST', body: JSON.stringify(data) });
 export const updateEvent = (eventId, data) => fetchWithAuth(`/events/${eventId}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteEvent = (eventId) => fetchWithAuth(`/events/${eventId}`, { method: 'DELETE' });
 export const finalizeEvent = (eventId) => fetchWithAuth(`/events/${eventId}/finalize`, { method: 'PATCH' });
-
 
 // --- CONTRATOS ---
 export const getContracts = () => fetchWithAuth('/contracts');
@@ -112,18 +99,15 @@ export const updateContract = (contractId, data) => fetchWithAuth(`/contracts/${
 export const updateContractStatus = (contractId, status) => fetchWithAuth(`/contracts/${contractId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 export const deleteContract = (contractId) => fetchWithAuth(`/contracts/${contractId}`, { method: 'DELETE' });
 
-
 // --- FEEDBACK ---
 export const getEventsForFeedback = () => fetchWithAuth('/feedback');
 export const createFeedbackRecord = (eventId) => fetchWithAuth('/feedback/record', { method: 'POST', body: JSON.stringify({ eventId }) });
 export const getFeedbackById = (feedbackId) => fetchPublic(`/feedback/${feedbackId}`);
 export const submitFeedback = (feedbackId, data) => fetchPublic(`/feedback/submit/${feedbackId}`, { method: 'POST', body: JSON.stringify(data) });
 
-
 // --- DASHBOARD ---
 export const getDashboardData = (periodo) => fetchWithAuth(`/dashboard?periodo=${periodo}`);
 export const saveUserDashboardLayout = (layout) => fetchWithAuth('/dashboard/layout', { method: 'PUT', body: JSON.stringify({ layout }) });
-
 
 // --- TRANSAÇÕES (FINANCEIRO) ---
 export const getTransactions = (filters = {}) => {
@@ -137,7 +121,6 @@ export const updateTransaction = (transactionId, data) => fetchWithAuth(`/transa
 export const updateTransactionStatus = (transactionId, status) => fetchWithAuth(`/transactions/${transactionId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 export const deleteTransaction = (transactionId) => fetchWithAuth(`/transactions/${transactionId}`, { method: 'DELETE' });
 
-
 // --- FORNECEDORES ---
 export const getAllSuppliers = (filters = {}) => {
     const query = new URLSearchParams(filters).toString();
@@ -148,55 +131,28 @@ export const createSupplier = (data) => fetchWithAuth('/suppliers', { method: 'P
 export const updateSupplier = (supplierId, data) => fetchWithAuth(`/suppliers/${supplierId}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteSupplier = (supplierId) => fetchWithAuth(`/suppliers/${supplierId}`, { method: 'DELETE' });
 
-
 // --- ESTOQUE (INVENTORY) ---
 export const getInventoryItems = () => fetchWithAuth('/inventory');
 export const getInventoryCategories = () => fetchWithAuth('/inventory/categories');
-
 export const createInventoryItem = (itemData, imageFile) => {
     const formData = new FormData();
-    formData.append('data', JSON.stringify(itemData));
-    if (imageFile) {
-        formData.append('image', imageFile);
-    }
-    
+    formData.append('data', JSON.stringify(itemData)); 
+    if (imageFile) { formData.append('image', imageFile); }
     const token = localStorage.getItem('authToken');
     const headers = {};
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    // CORREÇÃO APLICADA AQUI
-    return fetch(`${API_URL}/api/inventory`, {
-        method: 'POST',
-        headers: headers,
-        body: formData,
-    }).then(handleApiResponse);
+    if (token) { headers['Authorization'] = `Bearer ${token}`; }
+    return fetch(`${API_URL}/api/inventory`, { method: 'POST', headers: headers, body: formData }).then(handleApiResponse);
 };
-
 export const updateInventoryItem = (itemId, itemData, imageFile) => {
     const formData = new FormData();
     formData.append('data', JSON.stringify(itemData));
-    if (imageFile) {
-        formData.append('image', imageFile);
-    }
-    
+    if (imageFile) { formData.append('image', imageFile); }
     const token = localStorage.getItem('authToken');
     const headers = {};
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    // CORREÇÃO APLICADA AQUI
-    return fetch(`${API_URL}/api/inventory/${itemId}`, {
-        method: 'PUT',
-        headers: headers,
-        body: formData,
-    }).then(handleApiResponse);
+    if (token) { headers['Authorization'] = `Bearer ${token}`; }
+    return fetch(`${API_URL}/api/inventory/${itemId}`, { method: 'PUT', headers: headers, body: formData }).then(handleApiResponse);
 };
-
 export const deleteInventoryItem = (itemId) => fetchWithAuth(`/inventory/${itemId}`, { method: 'DELETE' });
-
 
 // --- DADOS DE SUPORTE (PARA MODAIS, ETC.) ---
 export const getAllClients = () => fetchWithAuth('/clients');
@@ -205,7 +161,6 @@ export const updateClient = (clientId, data) => fetchWithAuth(`/clients/${client
 export const deleteClient = (clientId) => fetchWithAuth(`/clients/${clientId}`, { method: 'DELETE' });
 export const getItemsForBudget = () => fetchWithAuth('/inventory/for-budget');
 
-
 // --- SEGURANÇA ---
 export const changePassword = (passwordData) => fetchWithAuth('/seguranca/alterar-senha', { method: 'POST', body: JSON.stringify(passwordData) });
 export const generate2FASecret = () => fetchWithAuth('/seguranca/2fa/gerar', { method: 'POST' });
@@ -213,13 +168,11 @@ export const enable2FA = (data) => fetchWithAuth('/seguranca/2fa/ativar', { meth
 export const disable2FA = () => fetchWithAuth('/seguranca/2fa/desativar', { method: 'POST' });
 export const getActivityLog = () => fetchWithAuth('/seguranca/logs-de-atividade');
 
-
 // --- STUDIO DE LAYOUTS ---
 export const getLayouts = () => fetchWithAuth('/layouts');
 export const getLayoutById = (id) => fetchWithAuth(`/layouts/${id}`);
 export const createLayout = (data) => fetchWithAuth('/layouts', { method: 'POST', body: JSON.stringify(data) });
 export const updateLayout = (id, data) => fetchWithAuth(`/layouts/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-
 
 // --- TAREFAS ---
 export const getTasks = (filters = {}) => {
