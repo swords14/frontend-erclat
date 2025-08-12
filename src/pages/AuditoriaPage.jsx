@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Filter, X, Eye, Code, ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+// Importe as funções da sua API central
+import { getAuditLogs, getAllUsers } from '../../services/api'; // Ajuste o caminho se necessário
 
 // --- Constantes de Estilo (Tailwind CSS) ---
 const thStyle = "px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider";
@@ -64,28 +66,29 @@ export default function AuditoriaPage() {
   const [showTechnicalLog, setShowTechnicalLog] = useState(false);
   const [usuarios, setUsuarios] = useState([]);
 
+  // CORRIGIDO: Usa a função centralizada getAllUsers
   const fetchUsers = useCallback(async () => {
     try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch('http://localhost:3333/api/auth/users', { headers: { 'Authorization': `Bearer ${token}` }});
-        if (!response.ok) throw new Error('Falha ao buscar usuários');
-        setUsuarios(await response.json());
-    } catch (error) { toast.error(error.message); }
+        const usersData = await getAllUsers();
+        setUsuarios(usersData);
+    } catch (error) { 
+        toast.error(error.message || 'Falha ao buscar usuários'); 
+    }
   }, []);
 
+  // CORRIGIDO: Usa a função centralizada getAuditLogs
   const fetchLogs = useCallback(async () => {
     setLoading(true);
-    const token = localStorage.getItem('authToken');
     const params = new URLSearchParams({ page: pagination.currentPage.toString(), limit: pagination.itemsPerPage.toString() });
     Object.entries(filters).forEach(([key, value]) => { if (value) params.append(key, value); });
 
     try {
-      const response = await fetch(`http://localhost:3333/api/audit-logs?${params.toString()}`, { headers: { 'Authorization': `Bearer ${token}` }});
-      if (!response.ok) throw new Error((await response.json()).message || "Erro ao carregar logs.");
-      const result = await response.json();
+      const result = await getAuditLogs(params.toString());
       setLogs(result.data);
       setPagination(prev => ({ ...prev, totalPages: result.totalPages, currentPage: result.currentPage }));
-    } catch (err) { toast.error(err.message); } 
+    } catch (err) { 
+        toast.error(err.message || "Erro ao carregar logs."); 
+    } 
     finally { setLoading(false); }
   }, [pagination.currentPage, pagination.itemsPerPage, filters]);
 

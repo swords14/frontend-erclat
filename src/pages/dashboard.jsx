@@ -10,6 +10,8 @@ import { ptBR } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+// Importe a função da sua API central
+import { getDashboardData } from '../services/api'; // Ajuste o caminho se necessário
 
 // --- ESTRUTURA INICIAL E ORDENADA DOS CARDS ---
 const initialCardLayout = [
@@ -31,22 +33,15 @@ const useDashboardData = () => {
     const [periodo, setPeriodo] = useState('mes');
     const [dashboardCards, setDashboardCards] = useState(initialCardLayout);
 
+    // CORRIGIDO: Usa a função centralizada getDashboardData
     const fetchData = useCallback(async (currentPeriod) => {
         if (!currentUser) return;
         setIsLoading(true);
         try {
-            const token = localStorage.getItem('authToken');
-            const response = await fetch(`http://localhost:3333/api/dashboard?periodo=${currentPeriod}`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-            if (!response.ok) {
-                const errorBody = await response.json().catch(() => ({ message: 'Erro desconhecido.' }));
-                throw new Error(errorBody.message || 'Falha ao buscar os dados da dashboard.');
-            }
-            const apiData = await response.json();
+            const apiData = await getDashboardData(currentPeriod);
             setData(apiData);
         } catch (error) {
-            toast.error(error.message);
+            toast.error(error.message || 'Falha ao buscar os dados da dashboard.');
             setData(null);
         } finally {
             setIsLoading(false);
