@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, CheckCircle, Clock, XCircle, Loader2, ServerCrash, Check, X, Edit, Printer } from 'lucide-react';
-import { getContracts, updateContractStatus } from '../services/api';
+import { getContracts, updateContractStatus } from '@/services/api';
 import toast from 'react-hot-toast';
 
 const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);

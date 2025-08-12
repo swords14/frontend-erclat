@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Plus, Search, Calendar, CheckCircle, XCircle, Tag, Clock, MapPin, ClipboardList, User, Trash2, Image as ImageIcon, Pencil, FileText, DollarSign, X as IconX, Check, Eye, Printer } from 'lucide-react';
-import { finalizeEvent } from '../services/api';
+import { finalizeEvent } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 
 // --- HOOK PERSONALIZADO ---

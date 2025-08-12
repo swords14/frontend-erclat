@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Printer, Edit, Loader2, ServerCrash, Check, X } from 'lucide-react';
-import { getContractById, updateContractStatus } from '../services/api';
+import { getContractById, updateContractStatus } from '@/services/api';
 import toast from 'react-hot-toast';
 
 const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);

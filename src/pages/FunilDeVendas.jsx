@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNavigate } from 'react-router-dom';
-import { getFunnelData, updateBudgetStatus, createContractFromBudget, getAllUsers } from '../services/api';
+import { getFunnelData, updateBudgetStatus, createContractFromBudget, getAllUsers } from '@/services/api';
 import toast from 'react-hot-toast';
 import { DollarSign, Calendar, CheckCircle, Loader2, Play, Clock, AlertTriangle, BarChart3, ServerCrash, FileText, User } from 'lucide-react';
 

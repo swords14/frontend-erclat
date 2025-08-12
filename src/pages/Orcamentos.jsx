@@ -10,7 +10,7 @@ import {
 import {
     getAllBudgets, createBudget, getItemsForBudget, getAllClients,
     deleteBudget, getBudgetById, updateBudget, updateBudgetStatus
-} from '../services/api';
+} from '@/services/api';
 
 // #region Componentes de UI (Helpers)
 const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);

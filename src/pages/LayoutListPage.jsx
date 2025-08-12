@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getLayouts } from '../services/api'; // <-- MUDANÇA IMPORTANTE AQUI
+import { getLayouts } from '@/services/api'; // <-- MUDANÇA IMPORTANTE AQUI
 import { PlusCircle, Grid } from 'lucide-react';
 
 export default function LayoutListPage() {

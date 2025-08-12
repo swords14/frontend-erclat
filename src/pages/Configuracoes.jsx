@@ -16,7 +16,7 @@ import {
     getAllTemplates, createTemplate, updateTemplate, deleteTemplate,
     changePassword, generate2FASecret, enable2FA, disable2FA,
     getActivityLog
-} from '../services/api';
+} from '@/services/api';
 
 
 // #region Componentes de UI Reutilizáveis

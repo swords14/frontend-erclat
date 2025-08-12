@@ -8,7 +8,7 @@ import {
     Plus, Search, Pencil, Trash2, X as IconX, Users, UserPlus, Building, Briefcase, List, LayoutGrid, 
     FileText, Phone, Mail, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight 
 } from 'lucide-react';
-import { getAllClients, createClient, updateClient, deleteClient } from '../services/api';
+import { getAllClients, createClient, updateClient, deleteClient } from '@/services/api';
 
 // --- CONSTANTES E COMPONENTES AUXILIARES ---
 const statusClienteOptions = ['Lead', 'Contato Inicial', 'Proposta Enviada', 'Em Negociação', 'Cliente Ativo', 'Inativo', 'Perdido'];

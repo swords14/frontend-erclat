@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { Loader2, Mail, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import LogoLuh from '../assets/teste.jpg';
 // Importa as funções da API
-import { login as apiLogin, verify2FALogin } from "../services/api";
+import { login as apiLogin, verify2FALogin } from '@/services/api';
 
 // --- Componente para o formulário de login principal ---
 const LoginForm = ({ onLoginSuccess, on2FARequired }) => {

@@ -5,7 +5,7 @@ import { PlusCircle, X, Edit, Trash2, Filter, Search, ClipboardCheck, Loader2 } 
 import { 
     getTasks, createTask, getAllUsers as getUsers, getAllClients as getClients,
     updateTask, deleteTask 
-} from '../services/api'; 
+} from '@/services/api'; 
 import toast from 'react-hot-toast';
 
 // --- COMPONENTES AUXILIARES DE UI ---

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Stage, Layer } from 'react-konva';
-import { getLayoutById, createLayout, updateLayout } from '../services/api';
+import { getLayoutById, createLayout, updateLayout } from '@/services/api';
 import ObjectLibrary from '../components/LayoutEditor/ObjectLibrary';
 import PropertiesPanel from '../components/LayoutEditor/PropertiesPanel';
 import useMeasure from 'react-use-measure';

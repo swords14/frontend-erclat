@@ -5,7 +5,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Loader2, ServerCrash } from 'lucide-react';
 import Select from 'react-select';
 import toast from 'react-hot-toast';
-import { getAllBudgets, getContractById, createContract, updateContract, getAllClients } from '../services/api';
+import { getAllBudgets, getContractById, createContract, updateContract, getAllClients } from '@/services/api';
 
 const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 

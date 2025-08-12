@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 // Importe a função da sua API central
-import { getDashboardData } from '../services/api'; // Ajuste o caminho se necessário
+import { getDashboardData } from '@/services/api'; // Ajuste o caminho se necessário
 
 // --- ESTRUTURA INICIAL E ORDENADA DOS CARDS ---
 const initialCardLayout = [

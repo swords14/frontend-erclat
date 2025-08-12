@@ -11,7 +11,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import {
     getAllClients, getAllSuppliers, getTransactions, updateTransactionStatus,
     deleteTransaction, createTransaction, updateTransaction, getEvents, getTransactionCategories
-} from '../services/api';
+} from '@/services/api';
 
 // --- Constantes e Funções Auxiliares ---
 const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);

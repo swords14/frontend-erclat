@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import {
     getAllSuppliers, createSupplier, updateSupplier, deleteSupplier, getSupplierCategories
-} from '../services/api';
+} from '@/services/api';
 
 // --- CONSTANTES E COMPONENTES AUXILIARES ---
 const ITEMS_PER_PAGE = 8;

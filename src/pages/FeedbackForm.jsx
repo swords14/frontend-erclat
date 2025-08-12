@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Star, ThumbsUp, Frown, Meh, Smile, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getFeedbackById, submitFeedback } from '../services/api';
+import { getFeedbackById, submitFeedback } from '@/services/api';
 import toast from 'react-hot-toast';
 
 // Componente para as estrelas

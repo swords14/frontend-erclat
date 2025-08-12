@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Link, MessageCircle, Star, Check, ThumbsUp, X as IconX, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getEventsForFeedback, createFeedbackRecord } from '../services/api';
+import { getEventsForFeedback, createFeedbackRecord } from '@/services/api';
 
 // Componente para renderizar as estrelas
 const StarDisplay = ({ rating }) => (

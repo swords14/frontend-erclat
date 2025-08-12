@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { Plus, Search, Pencil, Trash2, X as IconX, Package, PackageCheck, PackageX, DollarSign, List, LayoutGrid, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, FileText, Loader2, Image as ImageIcon } from 'lucide-react';
 import {
     getInventoryItems, createInventoryItem, updateInventoryItem, deleteInventoryItem, getSupplierCategories, getAllSuppliers, getInventoryCategories
-} from '../services/api';
+} from '@/services/api';
 
 // --- Constantes e Funções Auxiliares ---
 const ITEMS_PER_PAGE = 12;
