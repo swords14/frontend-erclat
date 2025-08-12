@@ -1,5 +1,5 @@
 // Caminho do arquivo: frontend/src/pages/Relatorios.jsx
-// CORREÇÃO: Adicionada verificação de segurança no componente VendasReport
+// CORRIGIDO: Usa o serviço de API centralizado
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,8 @@ import 'react-date-range/dist/theme/default.css';
 
 // Ícones
 import { ArrowLeft, Printer, DollarSign, TrendingUp, Calendar, Users, Truck, Scaling, X as IconX, BarChart3, Package, FileText } from 'lucide-react';
+// Importe a nova função da sua API central
+import { getReportData } from '@/services/api';
 
 // --- HOOK PERSONALIZADO ---
 const useRelatorios = () => {
@@ -32,20 +34,13 @@ const useRelatorios = () => {
         const { startDate, endDate } = range[0];
         const startDateISO = format(startDate, 'yyyy-MM-dd');
         const endDateISO = format(endDate, 'yyyy-MM-dd');
-        const token = localStorage.getItem('authToken');
 
         try {
-            const response = await fetch(
-                `http://localhost:3333/api/reports/${reportName}?startDate=${startDateISO}&endDate=${endDateISO}`, 
-                { headers: { 'Authorization': `Bearer ${token}` } }
-            );
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Erro ao buscar o relatório.`);
-            }
-            setReportData(await response.json());
+            // CORRIGIDO: Usa a função centralizada getReportData
+            const data = await getReportData(reportName, startDateISO, endDateISO);
+            setReportData(data);
         } catch (error) {
-            toast.error(error.message);
+            toast.error(error.message || `Erro ao buscar o relatório.`);
         } finally {
             setIsLoading(false);
         }
@@ -222,15 +217,8 @@ const FinanceiroReport = ({ data }) => {
     );
 };
 
-// ==================================================================
-// AQUI ESTÁ A CORREÇÃO
-// ==================================================================
 const VendasReport = ({ data }) => {
-    // Garante que 'data' e 'data.kpis' sejam objetos, mesmo que vazios.
-    // Isso evita o erro "cannot read properties of undefined".
     const { kpis = {}, funilData = [] } = data || {};
-
-    // Define valores padrão para cada KPI individualmente
     const totalOrcamentos = kpis.total || 0;
     const taxaConversao = kpis.conversao || 0;
     const valorAceito = kpis.valorAceito || 0;
@@ -244,11 +232,9 @@ const VendasReport = ({ data }) => {
                 <KPICard title="Valor Total Aceito" value={formatarMoeda(valorAceito)} icon={TrendingUp} valueClassName="text-green-500" />
                 <KPICard title="Ticket Médio" value={formatarMoeda(ticketMedio)} icon={DollarSign} valueClassName="text-indigo-500" />
             </div>
-             {/* O Gráfico do Funil continua aqui como antes */}
         </div>
     )
 };
-// ==================================================================
 
 const AnaliseClienteReport = ({ data = [] }) => {
     return (

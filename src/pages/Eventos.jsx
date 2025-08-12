@@ -1,12 +1,23 @@
 // Caminho do arquivo: frontend/src/pages/Eventos.jsx
-// Versão Otimizada
+// VERSÃO CORRIGIDA: Usa o serviço de API centralizado
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Plus, Search, Calendar, CheckCircle, XCircle, Tag, Clock, MapPin, ClipboardList, User, Trash2, Image as ImageIcon, Pencil, FileText, DollarSign, X as IconX, Check, Eye, Printer } from 'lucide-react';
-import { finalizeEvent } from '@/services/api';
+import { Plus, Search, Calendar, CheckCircle, XCircle, Tag, Clock, Pencil, Trash2, X as IconX, Check, Eye, Printer, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+// Importe TODAS as funções necessárias da sua API central
+import { 
+    getEvents, 
+    getAllClients, 
+    getAllUsers, 
+    getInventoryItems, 
+    getFutureReservations,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    finalizeEvent 
+} from '@/services/api'; // Ajuste o caminho se necessário
 
 // --- HOOK PERSONALIZADO ---
 const useEventos = () => {
@@ -20,23 +31,20 @@ const useEventos = () => {
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const token = localStorage.getItem('authToken');
-            const headers = { 'Authorization': `Bearer ${token}` };
-            const [eventosRes, clientesRes, usuariosRes, inventoryRes, reservasRes] = await Promise.all([
-                fetch('http://localhost:3333/api/events', { headers }),
-                fetch('http://localhost:3333/api/clients', { headers }),
-                fetch('http://localhost:3333/api/auth/users', { headers }),
-                fetch('http://localhost:3333/api/inventory', { headers }),
-                fetch('http://localhost:3333/api/calendar/future-reservations', { headers })
+            // Usa Promise.all com as funções da API central
+            const [eventosData, clientesData, usuariosData, inventoryData, reservasData] = await Promise.all([
+                getEvents(),
+                getAllClients(),
+                getAllUsers(),
+                getInventoryItems(),
+                getFutureReservations()
             ]);
-
-            if (!eventosRes.ok) throw new Error('Falha ao buscar eventos.');
             
-            setEventos(await eventosRes.json());
-            if (clientesRes.ok) setClientes(await clientesRes.json());
-            if (usuariosRes.ok) setUsuarios(await usuariosRes.json());
-            if (inventoryRes.ok) setInventoryItems(await inventoryRes.json());
-            if (reservasRes.ok) setReservasEstoque(await reservasRes.json());
+            setEventos(eventosData);
+            setClientes(clientesData);
+            setUsuarios(usuariosData);
+            setInventoryItems(inventoryData);
+            setReservasEstoque(reservasData);
 
         } catch (error) {
             toast.error(error.message || 'Erro ao carregar dados.');
@@ -49,17 +57,12 @@ const useEventos = () => {
 
     const saveEvent = async (eventData, eventoEditando) => {
         const isEditing = !!eventoEditando;
-        const url = isEditing ? `http://localhost:3333/api/events/${eventoEditando.id}` : 'http://localhost:3333/api/events';
-        const method = isEditing ? 'PUT' : 'POST';
-        const token = localStorage.getItem('authToken');
-
         try {
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(eventData)
-            });
-            if (!response.ok) throw new Error((await response.json()).message || 'Falha ao salvar evento.');
+            if (isEditing) {
+                await updateEvent(eventoEditando.id, eventData);
+            } else {
+                await createEvent(eventData);
+            }
             toast.success(`Evento ${isEditing ? 'atualizado' : 'criado'} com sucesso!`);
             fetchData();
             return true;
@@ -69,22 +72,6 @@ const useEventos = () => {
         }
     };
 
-    const deleteEvent = async (eventId) => {
-        if (!window.confirm('Tem certeza que deseja deletar este evento?')) return;
-        const token = localStorage.getItem('authToken');
-        try {
-            const response = await fetch(`http://localhost:3333/api/events/${eventId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-            if (!response.ok) throw new Error((await response.json()).message || 'Falha ao deletar evento.');
-            toast.success('Evento deletado com sucesso!');
-            fetchData();
-        } catch (error) {
-            toast.error(error.message);
-        }
-    };
-    
     const handleFinalizeEvent = async (eventId) => {
         if (!window.confirm('Tem certeza que deseja finalizar este evento?')) return;
         try {
@@ -135,7 +122,6 @@ export default function Eventos() {
     const eventosFiltrados = useMemo(() => { return eventos.filter(evento => (evento.title || '').toLowerCase().includes(termoBusca.toLowerCase()) || (evento.client?.nome || '').toLowerCase().includes(termoBusca.toLowerCase())); }, [eventos, termoBusca]);
     const kpiData = useMemo(() => ({ total: eventos.length, concluidos: eventos.filter(e => e.status === 'CONCLUIDO').length, valorTotal: eventos.reduce((acc, e) => acc + (e.valorTotal || 0), 0), }), [eventos]);
     
-    // ABRIR MODAL
     const abrirModal = (evento = null) => { setEventoEditando(evento); setModalAberto(true); };
     
     const handleSalvar = async (data) => { 
@@ -145,6 +131,10 @@ export default function Eventos() {
         }
         const success = await saveEvent(data, eventoEditando); 
         if (success) setModalAberto(false); 
+    };
+
+    const handleDelete = async (eventId) => {
+        await deleteEvent(eventId);
     };
 
     return (
@@ -161,7 +151,7 @@ export default function Eventos() {
             <div className="relative"><Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input type="text" placeholder="Buscar evento por título ou cliente..." value={termoBusca} onChange={e => setTermoBusca(e.target.value)} className="w-full pl-10 pr-4 py-2 input-form"/></div>
             {isLoading ? <div className="text-center p-10">A carregar eventos...</div> :
              eventosFiltrados.length === 0 ? <div className="text-center p-16 bg-white dark:bg-gray-800 rounded-2xl"><FileText size={48} className="mx-auto text-gray-400" /><h3 className="mt-4 text-xl font-semibold">Nenhum evento encontrado</h3></div> :
-             <TabelaEventos eventos={eventosFiltrados} onEdit={abrirModal} onDelete={deleteEvent} onFinalize={handleFinalizeEvent} />
+             <TabelaEventos eventos={eventosFiltrados} onEdit={abrirModal} onDelete={handleDelete} onFinalize={handleFinalizeEvent} />
             }
             <ModalEvento aberto={modalAberto} aoFechar={() => setModalAberto(false)} aoSalvar={handleSalvar} evento={eventoEditando} clientes={clientes} usuarios={usuarios} inventoryItems={inventoryItems} reservasEstoque={reservasEstoque} onFinalize={handleFinalizeEvent}/>
         </div>
@@ -184,15 +174,13 @@ const TabelaEventos = ({ eventos, onEdit, onDelete, onFinalize }) => {
                             <td className="p-4 hidden lg:table-cell text-right">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(evento.valorTotal || 0)}</td>
                             <td className="p-4"><EventStatusBadge status={evento.status} /></td>
                             <td className="p-4 text-center flex justify-center items-center gap-1">
-                                {/* Botões de Ação para cada status */}
-                                {evento.status === 'PLANEJADO' || evento.status === 'EM_ANDAMENTO' && (
+                                {evento.status === 'PLANEJADO' || evento.status === 'EM_ANDAMENTO' ? (
                                     <>
                                         <button onClick={() => onEdit(evento)} className="p-2 text-gray-500 hover:text-blue-500" title="Editar Evento"><Pencil size={18} /></button>
                                         <button onClick={() => onDelete(evento.id)} className="p-2 text-gray-500 hover:text-red-500" title="Deletar Evento"><Trash2 size={18} /></button>
                                         <button onClick={() => onFinalize(evento.id)} className="p-2 text-gray-500 hover:text-green-500" title="Finalizar Evento"><Check size={18} /></button>
                                     </>
-                                )}
-                                {evento.status === 'FINALIZADO' && (
+                                ) : (
                                     <>
                                         <button onClick={() => navigate(`/contratos/${evento.id}`)} className="p-2 text-gray-500 hover:text-blue-500" title="Ver Detalhes"><Eye size={18} /></button>
                                         <button onClick={() => window.print()} className="p-2 text-gray-500 hover:text-indigo-500" title="Imprimir Contrato"><Printer size={18} /></button>
@@ -207,7 +195,6 @@ const TabelaEventos = ({ eventos, onEdit, onDelete, onFinalize }) => {
     );
 };
 
-// ... Restante do código do ModalEvento e ModalSelecionarEstoque
 function ModalEvento({ aberto, aoFechar, aoSalvar, evento, clientes, usuarios, inventoryItems, reservasEstoque, onFinalize }) {
     const initialState = { title: '', startDate: '', endDate: '', convidados: 0, valorTotal: 0, status: 'PLANEJADO', observacoes: '', clientId: '', tasks: [], staff: [], eventItems: [], eventType: '', eventTheme: '', localNome: '', localEndereco: '', localCidade: '', localEstado: '', localCEP: '', setupDate: '', setupTimeStart: '', setupTimeEnd: '', teardownDate: '', teardownTimeStart: '', teardownTimeEnd: '', specificRequirements: '', eventContactName: '', eventContactPhone: '', eventContactEmail: '' };
     const [formData, setFormData] = useState(initialState);
@@ -287,7 +274,6 @@ function ModalEvento({ aberto, aoFechar, aoSalvar, evento, clientes, usuarios, i
                             </motion.div>
                             <div className="p-6 flex justify-end gap-4 border-t dark:border-gray-700">
                                 <button type="button" onClick={aoFechar} className="btn-secondary">Cancelar</button>
-                                {/* Botão para Finalizar Evento */}
                                 {evento && evento.status !== 'FINALIZADO' && evento.status !== 'CANCELADO' && (
                                     <button type="button" onClick={() => onFinalize(evento.id)} className="btn-success flex items-center gap-2">
                                         <Check size={16} /> Finalizar Evento
@@ -308,5 +294,31 @@ function ModalEvento({ aberto, aoFechar, aoSalvar, evento, clientes, usuarios, i
 function ModalSelecionarEstoque({ aberto, aoFechar, inventoryItems, onSelectItem }) {
     const [termoBusca, setTermoBusca] = useState('');
     const itensFiltrados = useMemo(() => { return inventoryItems.filter(item => item.nome.toLowerCase().includes(termoBusca.toLowerCase())); }, [inventoryItems, termoBusca]);
-    return ( <AnimatePresence>{aberto && ( <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4"><motion.div initial={{scale:0.9}} animate={{scale:1}} exit={{scale:0.9}} className="bg-white rounded-2xl w-full max-w-2xl flex flex-col max-h-[80vh]"><div className="p-6 border-b"><h2 className="text-2xl font-bold">Selecionar Item</h2></div><div className="p-6"><input type="text" placeholder="Buscar..." value={termoBusca} onChange={e => setTermoBusca(e.target.value)} className="input-form w-full"/></div><div className="px-6 pb-6 overflow-y-auto space-y-2">{itensFiltrados.map(item => (<div key={item.id} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100"><span>{item.nome}</span><button type="button" onClick={() => onSelectItem(item)} className="btn-secondary-sm">Adicionar</button></div>))}</div><div className="p-6 border-t flex justify-end"><button type="button" onClick={aoFechar} className="btn-secondary">Fechar</button></div></motion.div></motion.div> )} </AnimatePresence> );
-}
+        return (
+            <AnimatePresence>
+                {aberto && (
+                    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+                        <motion.div initial={{scale:0.9}} animate={{scale:1}} exit={{scale:0.9}} className="bg-white rounded-2xl w-full max-w-2xl flex flex-col max-h-[80vh]">
+                            <div className="p-6 border-b">
+                                <h2 className="text-2xl font-bold">Selecionar Item</h2>
+                            </div>
+                            <div className="p-6">
+                                <input type="text" placeholder="Buscar..." value={termoBusca} onChange={e => setTermoBusca(e.target.value)} className="input-form w-full"/>
+                            </div>
+                            <div className="px-6 pb-6 overflow-y-auto space-y-2">
+                                {itensFiltrados.map(item => (
+                                    <div key={item.id} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                                        <span>{item.nome}</span>
+                                        <button type="button" onClick={() => onSelectItem(item)} className="btn-secondary-sm">Adicionar</button>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="p-6 border-t flex justify-end">
+                                <button type="button" onClick={aoFechar} className="btn-secondary">Fechar</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        );
+    }
