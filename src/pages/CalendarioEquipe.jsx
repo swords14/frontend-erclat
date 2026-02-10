@@ -1,11 +1,11 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
 import interactionPlugin from '@fullcalendar/interaction';
 import ptBrLocale from '@fullcalendar/core/locales/pt-br';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { X as IconX, Calendar, Users, CheckCircle, Clock, Tag, Filter, ChevronLeft, ChevronRight, Search as SearchIcon, DollarSign as DollarIcon, Users as GuestsIcon } from 'lucide-react';
+import { X as IconX, Calendar, Users, CheckCircle, Clock, Tag, Filter, ChevronLeft, ChevronRight, Search as SearchIcon, DollarSign as DollarIcon, Users as GuestsIcon, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -64,16 +64,17 @@ const EventStatusBadge = ({ status }) => {
     );
 };
 
-
 export default function CalendarioEquipe() {
   const [eventos, setEventos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filtroFuncao, setFiltroFuncao] = useState('todas');
   const [filtroMembro, setFiltroMembro] = useState('todos');
-  const [calendarApi, setCalendarApi] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [eventoClicado, setEventoClicado] = useState(null);
+  
+  // REF: Usamos useRef para manter a referência ao calendário de forma segura
+  const calendarRef = useRef(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -83,10 +84,13 @@ export default function CalendarioEquipe() {
             getAllUsers()
         ]);
 
-        setEventos(fetchedEvents);
-        setUsuarios(fetchedUsers);
+        setEventos(fetchedEvents || []); // Garante array vazio se vier null
+        setUsuarios(fetchedUsers || []);
     } catch (error) {
-        toast.error(error.message || 'Erro ao carregar dados do calendário.');
+        console.error(error);
+        toast.error('Erro ao carregar dados do calendário.');
+        setEventos([]); 
+        setUsuarios([]);
     } finally {
         setIsLoading(false);
     }
@@ -128,24 +132,21 @@ export default function CalendarioEquipe() {
         if (membroReal?.id != null && isMembroInEquipeFiltrada) {
             const startDateObj = new Date(evento.startDate);
             const endDateObj = new Date(evento.endDate || evento.startDate);
-            const durationMs = endDateObj.getTime() - startDateObj.getTime();
-            const oneDayMs = 24 * 60 * 60 * 1000;
-            const isExactDayMultiple = durationMs % oneDayMs === 0;
-            const startsAtMidnight = startDateObj.getUTCHours() === 0 && startDateObj.getUTCMinutes() === 0 && startDateObj.getUTCSeconds() === 0;
-            const endsAtMidnight = endDateObj.getUTCHours() === 0 && endDateObj.getUTCMinutes() === 0 && endDateObj.getUTCSeconds() === 0;
-            const isAllDayEvent = isExactDayMultiple && startsAtMidnight && endsAtMidnight;
+            
+            // Lógica simples para definir fim do evento se não tiver
             let finalEnd = evento.endDate || evento.startDate;
-            if (!isAllDayEvent && startDateObj.getTime() === endDateObj.getTime()) {
-                finalEnd = new Date(startDateObj.getTime() + 30 * 60 * 1000).toISOString();
+            if (startDateObj.getTime() === endDateObj.getTime()) {
+                 // Adiciona 1 hora por padrão se as datas forem iguais
+                 const oneHourLater = new Date(startDateObj.getTime() + 60 * 60 * 1000);
+                 finalEnd = oneHourLater.toISOString();
             }
 
             eventsForCalendar.push({
-                id: evento.id,
+                id: `${evento.id}-${membroReal.id}`, // ID único para o FullCalendar
                 resourceId: membroReal.id.toString(),
                 title: evento.title,
                 start: evento.startDate,
                 end: finalEnd,
-                allDay: isAllDayEvent,
                 className: evento.status === 'CONCLUIDO' ? 'event-concluido' : evento.status === 'CANCELADO' ? 'event-cancelado' : 'event-planejado',
                 extendedProps: {
                     id: evento.id,
@@ -159,8 +160,7 @@ export default function CalendarioEquipe() {
                     convidados: evento.convidados,
                     valorTotal: evento.valorTotal,
                     start: evento.startDate,
-                    end: finalEnd,
-                    allDay: isAllDayEvent,
+                    end: finalEnd
                 },
             });
         }
@@ -174,15 +174,26 @@ export default function CalendarioEquipe() {
     return [...roles];
   }, [usuarios]);
 
-  const handleCalendarMount = useCallback((calendar) => {
-    setCalendarApi(calendar.api);
-  }, []);
-
+  // Funções de navegação do calendário corrigidas usando a REF
   const goToDate = (dateString) => {
+    const calendarApi = calendarRef.current?.getApi();
     if (calendarApi && dateString) {
       calendarApi.gotoDate(dateString);
     }
   };
+
+  const handlePrev = () => {
+      calendarRef.current?.getApi()?.prev();
+  };
+
+  const handleNext = () => {
+      calendarRef.current?.getApi()?.next();
+  };
+
+  const handleToday = () => {
+      calendarRef.current?.getApi()?.today();
+  };
+
 
   const handleEventClick = (clickInfo) => {
     setEventoClicado(clickInfo.event.extendedProps);
@@ -192,12 +203,10 @@ export default function CalendarioEquipe() {
   const renderEventContent = (eventInfo) => {
     const { event } = eventInfo;
     return (
-      <div className="fc-event-content p-1 text-xs">
-        <div className="font-bold whitespace-nowrap overflow-hidden text-ellipsis">{event.title}</div>
-        {event.extendedProps.clienteNome && <div className="text-gray-200 whitespace-nowrap overflow-hidden text-ellipsis">{event.extendedProps.clienteNome}</div>}
-        <div className="flex items-center gap-1 text-gray-300">
-            {event.extendedProps.convidados > 0 && <><GuestsIcon size={12}/> {event.extendedProps.convidados}</>}
-            {event.extendedProps.valorTotal > 0 && <><DollarIcon size={12}/> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(event.extendedProps.valorTotal)}</>}
+      <div className="fc-event-content p-1 text-xs overflow-hidden">
+        <div className="font-bold truncate">{event.title}</div>
+        {event.extendedProps.clienteNome && <div className="text-gray-200 truncate">{event.extendedProps.clienteNome}</div>}
+        <div className="flex items-center gap-1 text-gray-300 mt-1">
             <EventStatusBadge status={event.extendedProps.status} />
         </div>
       </div>
@@ -213,9 +222,6 @@ export default function CalendarioEquipe() {
     );
   }
 
-  const firstEventWithStaff = eventos.find(e => Array.isArray(e.staff) && e.staff.length > 0 && e.startDate);
-  const initialDate = firstEventWithStaff ? new Date(firstEventWithStaff.startDate).toISOString() : new Date().toISOString();
-
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 min-h-[calc(100vh-64px)]">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -225,9 +231,9 @@ export default function CalendarioEquipe() {
         </div>
         <div className="flex items-center gap-2">
             <input type="date" className="input-form" onChange={(e) => goToDate(e.target.value)} title="Ir para uma data específica" />
-            <button onClick={() => calendarApi?.prev()} className="btn-secondary p-2 rounded-lg"><ChevronLeft size={20}/></button>
-            <button onClick={() => calendarApi?.next()} className="btn-secondary p-2 rounded-lg"><ChevronRight size={20}/></button>
-            <button onClick={() => calendarApi?.today()} className="btn-secondary p-2 rounded-lg">Hoje</button>
+            <button onClick={handlePrev} className="btn-secondary p-2 rounded-lg"><ChevronLeft size={20}/></button>
+            <button onClick={handleNext} className="btn-secondary p-2 rounded-lg"><ChevronRight size={20}/></button>
+            <button onClick={handleToday} className="btn-secondary p-2 rounded-lg">Hoje</button>
         </div>
       </div>
       <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm flex flex-wrap items-center gap-4">
@@ -243,72 +249,74 @@ export default function CalendarioEquipe() {
       </div>
       <div className="flex-grow bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
         <FullCalendar
+          ref={calendarRef} 
           plugins={[resourceTimelinePlugin, interactionPlugin]}
           initialView="resourceTimelineDay"
           schedulerLicenseKey='GPL-My-Project-Is-Open-Source'
           locale={ptBrLocale}
-          headerToolbar={{ left: 'prev,next today', center: 'title', right: 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth' }}
-          buttonText={{ today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia' }}
-          editable
+          headerToolbar={false} // Desabilitamos a toolbar padrão para usar os nossos botões customizados
+          editable={false} // Modo visualização apenas
           resources={resources}
           events={calendarEvents}
           resourceAreaHeaderContent="Equipe"
+          resourceAreaWidth="200px"
           eventClick={handleEventClick}
-          initialDate={initialDate}
-          slotMinTime="00:00:00"
+          slotMinTime="06:00:00" // Começa as 6 da manhã para ficar mais limpo
           slotMaxTime="24:00:00"
           height="auto"
-          ref={handleCalendarMount}
           eventContent={renderEventContent}
         />
         <style>{`
-            .fc-event.event-concluido { background-color: #4CAF50; border-color: #4CAF50; color: white; }
-            .fc-event.event-cancelado { background-color: #F44336; border-color: #F44336; color: white; }
-            .fc-event.event-planejado { background-color: #2196F3; border-color: #2196F3; color: white; }
+            .fc-event.event-concluido { background-color: #10B981; border-color: #10B981; color: white; }
+            .fc-event.event-cancelado { background-color: #EF4444; border-color: #EF4444; color: white; }
+            .fc-event.event-planejado { background-color: #3B82F6; border-color: #3B82F6; color: white; }
+            .fc-timeline-slot { min-width: 40px; }
         `}</style>
       </div>
-      <ModalDetalheEvento aberto={modalAberto} aoFechar={() => setModalAberto(false)} info={eventoClicado} />
-    </div>
-  );
-}
 
-function ModalDetalheEvento({ aberto, aoFechar, info }) {
-    if (!info) return null;
-    const formatarDataCompleta = (dateString) => dateString ? format(new Date(dateString), 'EEEE, dd \'de\' MMMM \'de\' yyyy, HH:mm', { locale: ptBR }) : 'N/A';
-    const formatarHora = (dateString) => dateString ? format(new Date(dateString), 'HH:mm') : 'N/A';
-
-    return (
-        <AnimatePresence>
-        {aberto && (
+      {/* MODAL DETALHES */}
+      <AnimatePresence>
+        {modalAberto && eventoClicado && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg p-6">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold flex items-center gap-2"><Calendar size={24}/> Detalhes da Atribuição</h2>
-                    <button onClick={aoFechar} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><IconX size={22}/></button>
+                    <button onClick={() => setModalAberto(false)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><IconX size={22}/></button>
                 </div>
                 <div className="space-y-4">
-                    <div><p className="text-sm text-gray-500">Evento</p><p className="font-semibold text-lg">{info.title}</p></div>
-                    <div>
-                        <p className="text-sm text-gray-500">Período</p>
-                        <p className="font-semibold">{formatarDataCompleta(info.start)} até {formatarHora(info.end)}</p>
-                        {info.allDay && <p className="text-xs text-gray-400">(Dia inteiro)</p>}
-                    </div>
+                    <div><p className="text-sm text-gray-500">Evento</p><p className="font-semibold text-lg">{eventoClicado.title}</p></div>
+                    
                     <div className="grid grid-cols-2 gap-4">
-                         <div><p className="text-sm text-gray-500">Membro da Equipe</p><p className="font-semibold">{info.membroNome}</p></div>
-                         <div><p className="text-sm text-gray-500">Função no Evento</p><p className="font-semibold">{info.membroRole}</p></div>
+                        <div>
+                            <p className="text-sm text-gray-500">Início</p>
+                            <p className="font-semibold">{format(new Date(eventoClicado.start), "dd/MM/yyyy HH:mm")}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500">Fim</p>
+                            <p className="font-semibold">{format(new Date(eventoClicado.end), "dd/MM/yyyy HH:mm")}</p>
+                        </div>
                     </div>
-                    <div><p className="text-sm text-gray-500">Cliente</p><p className="font-semibold">{info.clienteNome}</p></div>
-                    {info.convidados && <div><p className="text-sm text-gray-500">Convidados</p><p className="font-semibold">{info.convidados}</p></div>}
-                    {info.valorTotal && <div><p className="text-sm text-gray-500">Valor Estimado</p><p className="font-semibold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(info.valorTotal)}</p></div>}
-                    {info.observacoes && <div><p className="text-sm text-gray-500">Observações</p><p className="font-semibold text-gray-700 dark:text-gray-300">{info.observacoes}</p></div>}
+
+                    <div className="grid grid-cols-2 gap-4">
+                         <div><p className="text-sm text-gray-500">Membro da Equipe</p><p className="font-semibold">{eventoClicado.membroNome}</p></div>
+                         <div><p className="text-sm text-gray-500">Função</p><p className="font-semibold">{eventoClicado.membroRole}</p></div>
+                    </div>
+                    
+                    {eventoClicado.clienteNome && (
+                        <div><p className="text-sm text-gray-500">Cliente</p><p className="font-semibold">{eventoClicado.clienteNome}</p></div>
+                    )}
+                    
+                    {eventoClicado.observacoes && (
+                        <div><p className="text-sm text-gray-500">Observações</p><p className="font-semibold text-gray-700 dark:text-gray-300">{eventoClicado.observacoes}</p></div>
+                    )}
                 </div>
                 <div className="flex justify-end gap-4 pt-6 mt-4 border-t dark:border-gray-700">
-                    {info.clienteId && <Link to={`/clientes/${info.clienteId}`} onClick={aoFechar}><button className="btn-secondary flex items-center gap-2"><Users size={16}/> Ver Cliente</button></Link>}
-                    {info.id && <Link to={`/eventos`} onClick={aoFechar}><button className="btn-primary flex items-center gap-2"><Calendar size={16}/> Ver Evento</button></Link>}
+                    <button onClick={() => setModalAberto(false)} className="btn-secondary">Fechar</button>
                 </div>
             </motion.div>
             </motion.div>
         )}
-        </AnimatePresence>
-    );
+      </AnimatePresence>
+    </div>
+  );
 }

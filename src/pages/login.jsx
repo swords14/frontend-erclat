@@ -1,3 +1,5 @@
+// Caminho do arquivo: src/pages/login.jsx
+
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -21,7 +23,9 @@ const LoginForm = ({ onLoginSuccess, on2FARequired }) => {
     setIsLoading(true);
 
     try {
-      const data = await apiLogin({ email, senha });
+      // CORREÇÃO AQUI: Enviamos { email, password: senha } 
+      // O backend espera 'password', mas seu estado chama-se 'senha'.
+      const data = await apiLogin({ email, password: senha });
 
       if (data.twoFactorRequired && data.tempToken) {
         on2FARequired(data.tempToken);
