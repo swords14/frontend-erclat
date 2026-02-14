@@ -8,7 +8,7 @@ import {
   Archive,
   FileSignature,
   Star,
-  ClipboardCheck, // Ícone já importado, ótimo!
+  ClipboardCheck, 
   Filter,
   Grid,
 } from 'lucide-react';

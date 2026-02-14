@@ -6,7 +6,6 @@ import { User, Palette, Shield, Building, Upload, Users, Plus, X as IconX, Check
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
-// Todas as importações da API necessárias para todas as abas.
 import { 
     getMyProfile, updateMyProfile, uploadAvatar,
     getCompanyData, updateCompanyData,
@@ -43,7 +42,6 @@ const SettingsCard = ({ title, description, children }) => (
 // #endregion
 
 
-// #region Modais (Idealmente em /src/components/modals/)
 
 function ModalTemplate({ aberto, aoFechar, aoSalvar, template }) {
     const [formData, setFormData] = useState({ nome: '', tipo: 'Contrato', conteudo: '' });

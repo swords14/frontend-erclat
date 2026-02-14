@@ -71,10 +71,11 @@ export default function Orcamentos() {
           const [budgetsData, clientsData, inventoryData] = await Promise.all([
               getAllBudgets(), getAllClients(), getItemsForBudget()
           ]);
-          setOrcamentos(budgetsData);
-          setClientes(clientsData);
-          setItensDeEstoque(inventoryData);
+          setOrcamentos(budgetsData || []);
+          setClientes(clientsData || []);
+          setItensDeEstoque(inventoryData || []);
       } catch (error) {
+          console.error(error);
           toast.error(`Erro ao buscar dados: ${error.message}`);
       } finally {
           setIsLoading(false);
@@ -85,7 +86,7 @@ export default function Orcamentos() {
 
   const dadosProcessados = useMemo(() => {
     const emAberto = orcamentos.filter(o => ['Orçamento Enviado', 'Rascunho', 'Follow-up', 'Em Negociação'].includes(o.status));
-    const valorEmAberto = emAberto.reduce((acc, o) => acc + o.valorTotal, 0);
+    const valorEmAberto = emAberto.reduce((acc, o) => acc + (Number(o.valorTotal) || 0), 0);
     
     const filtered = orcamentos.filter(o =>
         (o.client?.nome?.toLowerCase() || '').includes(termoBusca.toLowerCase()) ||
@@ -112,6 +113,7 @@ export default function Orcamentos() {
         setOrcamentoEmEdicao(null);
         fetchData();
     } catch (error) {
+        console.error(error);
         toast.error(`Erro: ${error.message}`, { id: toastId });
     }
   };
@@ -154,7 +156,7 @@ export default function Orcamentos() {
       setOrcamentoEmEdicao(null);
   }
 
-  if (isLoading) return <div className="p-6">A carregar orçamentos...</div>;
+  if (isLoading) return <div className="p-6 text-center">A carregar orçamentos...</div>;
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -176,7 +178,7 @@ export default function Orcamentos() {
             <div>
                 <div className="hidden md:block bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <table className="w-full text-left"><thead className="bg-gray-50 dark:bg-gray-700/50 text-sm text-gray-600 dark:text-gray-300 uppercase"><tr><th className="p-4">Cliente / Evento</th><th className="p-4">Data do Evento</th><th className="p-4">Validade</th><th className="p-4">Status</th><th className="p-4 text-right">Valor</th><th className="p-4 text-center">Ações</th></tr></thead>
-                        <tbody>{dadosProcessados.filtrados.map(o => (<tr key={o.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition"><td className="p-4 font-medium">{o.client.nome}<br/><span className="text-sm text-gray-500">{o.eventName}</span></td><td className="p-4">{o.eventDate ? new Date(o.eventDate).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '-'}</td><td className="p-4">{new Date(o.validade).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td className="p-4"><StatusBadge status={o.status} /></td><td className="p-4 text-right font-semibold">{formatarMoeda(o.valorTotal)}</td><td className="p-4 flex justify-center gap-2">
+                        <tbody>{dadosProcessados.filtrados.map(o => (<tr key={o.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition"><td className="p-4 font-medium">{o.client?.nome || 'Cliente Removido'}<br/><span className="text-sm text-gray-500">{o.eventName}</span></td><td className="p-4">{o.eventDate ? new Date(o.eventDate).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '-'}</td><td className="p-4">{o.validade ? new Date(o.validade).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '-'}</td><td className="p-4"><StatusBadge status={o.status} /></td><td className="p-4 text-right font-semibold">{formatarMoeda(o.valorTotal)}</td><td className="p-4 flex justify-center gap-2">
                             <motion.button onClick={() => handleAbrirModal(o)} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="p-2 text-gray-500 hover:text-indigo-600" aria-label="Editar"><Edit size={18} /></motion.button>
                             <motion.button onClick={() => handleExcluirOrcamento(o.id)} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="p-2 text-gray-500 hover:text-red-600" aria-label="Excluir"><Trash2 size={18} /></motion.button>
                             {o.status !== 'Aprovado' && o.status !== 'Recusado' && o.status !== 'Rascunho' && (
@@ -196,12 +198,12 @@ export default function Orcamentos() {
                     {dadosProcessados.filtrados.map(o => (
                         <div key={o.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 space-y-3 border border-gray-200 dark:border-gray-700">
                             <div className="flex justify-between items-start">
-                                <div className="font-bold">{o.client.nome} <br/> <span className="text-sm font-normal text-gray-500">{o.eventName}</span></div>
+                                <div className="font-bold">{o.client?.nome || 'N/A'} <br/> <span className="text-sm font-normal text-gray-500">{o.eventName}</span></div>
                                 <StatusBadge status={o.status} />
                             </div>
                             <div className="flex justify-between text-sm border-t dark:border-gray-700 pt-2">
                                 <span className="text-gray-500">Valor: <strong className="text-gray-800 dark:text-gray-100">{formatarMoeda(o.valorTotal)}</strong></span>
-                                <span className="text-gray-500">Validade: <strong className="text-gray-800 dark:text-gray-100">{new Date(o.validade).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</strong></span>
+                                <span className="text-gray-500">Validade: <strong className="text-gray-800 dark:text-gray-100">{o.validade ? new Date(o.validade).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '-'}</strong></span>
                             </div>
                              <div className="flex justify-end gap-2 border-t dark:border-gray-700 pt-2">
                                 <button onClick={() => handleAbrirModal(o)} className="btn-secondary text-xs py-1 px-3">Editar</button>
@@ -256,7 +258,33 @@ const ModalTabs = ({ tabs, activeTab, setActiveTab }) => (
 function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clientes, itensDeEstoque }) {
   const gerarCodigoPadrao = () => `ORC-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`;
   
-  const initialState = { clienteId: '', eventName: '', eventDate: '', convidados: 50, itens: [], desconto: 0, taxaServico: 10, observacoes: '', codigoOrcamento: gerarCodigoPadrao(), versao: '1.0', dataEnvio: '', localEventoNome: '', localEventoEndereco: '', localEventoCidade: '', localEventoEstado: '', localEventoCEP: '', horarioInicio: '', horarioFim: '', tipoCozinha: '', restricoesAlimentares: '', condicoesPagamento: '', observacoesFinanceiras: '' };
+  // CORREÇÃO: Adicionado campo 'validade' com padrão de 15 dias e renomeado para 'items' se necessário (embora o state use 'itens', vamos converter no submit)
+  const initialState = { 
+    clienteId: '', 
+    eventName: '', 
+    eventDate: '', 
+    validade: new Date(new Date().setDate(new Date().getDate() + 15)).toISOString().split('T')[0], // Padrão 15 dias
+    convidados: 50, 
+    itens: [], // No state mantemos 'itens', mas no submit enviamos 'items'
+    desconto: 0, 
+    taxaServico: 10, 
+    observacoes: '', 
+    codigoOrcamento: gerarCodigoPadrao(), 
+    versao: '1.0', 
+    dataEnvio: '', 
+    localEventoNome: '', 
+    localEventoEndereco: '', 
+    localEventoCidade: '', 
+    localEventoEstado: '', 
+    localEventoCEP: '', 
+    horarioInicio: '', 
+    horarioFim: '', 
+    tipoCozinha: '', 
+    restricoesAlimentares: '', 
+    condicoesPagamento: '', 
+    observacoesFinanceiras: '' 
+  };
+  
   const [formData, setFormData] = useState(initialState);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [itemSelecionado, setItemSelecionado] = useState('');
@@ -280,8 +308,9 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
                     clienteId: budgetCompleto.clientId,
                     eventName: budgetCompleto.eventName || '',
                     eventDate: budgetCompleto.eventDate ? new Date(budgetCompleto.eventDate).toISOString().split('T')[0] : '',
+                    validade: budgetCompleto.validade ? new Date(budgetCompleto.validade).toISOString().split('T')[0] : initialState.validade,
                     convidados: budgetCompleto.convidados || 50,
-                    itens: budgetCompleto.items || [],
+                    itens: budgetCompleto.items || [], // Backend retorna 'items', mas aqui usamos 'itens' para consistência visual interna
                     desconto: budgetCompleto.desconto || 0,
                     taxaServico: budgetCompleto.taxaServico || 10,
                     observacoes: budgetCompleto.observacoes || '',
@@ -327,7 +356,7 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
     const itemDoEstoque = itensDeEstoque.find(s => s.id === Number(itemSelecionado));
     if (itemDoEstoque && !formData.itens.find(item => item.id === itemDoEstoque.id)) {
       const novoItem = {
-        id: itemDoEstoque.id,
+        id: itemDoEstoque.id, // Isso pode ser temporário, o backend gera IDs reais para items do orçamento
         descricao: itemDoEstoque.nome,
         quantidade: itemDoEstoque.unidade === 'pessoa' ? Number(formData.convidados) : 1,
         valorUnitario: itemDoEstoque.valor,
@@ -356,8 +385,32 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.clienteId) { toast.error("Por favor, selecione um cliente na aba 'Informações'."); setActiveTab('info'); return; }
-    const dadosParaSalvar = { ...formData, totalGeral: calculos.totalGeral, dataEnvio: formData.dataEnvio ? new Date(formData.dataEnvio) : null, dataEvento: formData.dataEvento ? new Date(formData.dataEvento) : null };
+    if (!formData.clienteId) { 
+        toast.error("Por favor, selecione um cliente na aba 'Informações'."); 
+        setActiveTab('info'); 
+        return; 
+    }
+
+    // --- CORREÇÃO: Transformação dos dados para o formato que o Backend espera ---
+    const dadosParaSalvar = { 
+        ...formData, 
+        // 1. Mapeia 'itens' (front) para 'items' (back)
+        items: formData.itens.map(item => ({
+            descricao: item.descricao,
+            quantidade: Number(item.quantidade),
+            valorUnitario: Number(item.valorUnitario),
+            unidade: item.unidade
+        })),
+        // 2. Garante datas no formato correto
+        eventDate: formData.eventDate ? new Date(formData.eventDate) : null,
+        dataEnvio: formData.dataEnvio ? new Date(formData.dataEnvio) : null,
+        validade: formData.validade ? new Date(formData.validade) : new Date(),
+        totalGeral: Number(calculos.totalGeral)
+    };
+    
+    // Removemos a chave 'itens' antiga para não enviar lixo
+    delete dadosParaSalvar.itens;
+
     aoSalvar(dadosParaSalvar);
   };
 
@@ -387,7 +440,11 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
                                   <div><label className="label-form">Data do Evento</label><input type="date" name="eventDate" value={formData.eventDate} onChange={handleChange} className="input-form w-full" /></div>
                                   <div><label className="label-form">Nº de Convidados</label><input type="number" name="convidados" value={formData.convidados} onChange={handleChange} className="input-form w-full" /></div>
                                 </div>
-                                <div><label className="label-form">Nome/Tipo do Evento</label><input type="text" name="eventName" value={formData.eventName} onChange={handleChange} className="input-form w-full" placeholder="Ex: Casamento, Aniversário de 15 anos" /></div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div><label className="label-form">Nome/Tipo do Evento</label><input type="text" name="eventName" value={formData.eventName} onChange={handleChange} className="input-form w-full" placeholder="Ex: Casamento, Aniversário" /></div>
+                                    {/* CORREÇÃO: Input de Validade adicionado */}
+                                    <div><label className="label-form">Validade da Proposta</label><input type="date" name="validade" value={formData.validade} onChange={handleChange} className="input-form w-full" /></div>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                                     <div><label className="label-form">Código do Orçamento</label><input type="text" name="codigoOrcamento" value={formData.codigoOrcamento} onChange={handleChange} className="input-form w-full" placeholder="Ex: ORC001" /></div>
                                     <div><label className="label-form">Versão</label><input type="text" name="versao" value={formData.versao} onChange={handleChange} className="input-form w-full" /></div>

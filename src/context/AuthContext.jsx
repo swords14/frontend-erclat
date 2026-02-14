@@ -25,12 +25,9 @@ export function AuthProvider({ children }) {
     };
     
     initializeAuth();
-  // A função logout agora está envolvida em useCallback, então a adicionamos aqui.
   }, [token]);
 
-  // --- CORREÇÃO APLICADA AQUI ---
-  // Envolvemos as funções em `useCallback` para que elas não sejam recriadas a cada renderização.
-  // Isso estabiliza as funções e impede que `useEffect` em outros componentes entre em loop.
+
   const login = useCallback((userData, userToken) => {
     localStorage.setItem('authToken', userToken);
     localStorage.setItem('authUser', JSON.stringify(userData));

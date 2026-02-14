@@ -1,5 +1,5 @@
 // Caminho do arquivo: frontend/src/pages/Clientes.jsx
-// VERSÃO ATUALIZADA: Adicionado o campo CPF para Pessoa Física no modal.
+// VERSÃO CORRIGIDA: Estrutura os contatos corretamente para o Backend
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,9 +27,10 @@ const useClientes = () => {
         setIsLoading(true);
         try {
             const data = await getAllClients();
-            setClientes(data);
+            setClientes(data || []);
         } catch (error) {
-            toast.error(error.message);
+            console.error(error);
+            toast.error('Erro ao carregar clientes.');
             setClientes([]);
         } finally {
             setIsLoading(false);
@@ -52,7 +53,8 @@ const useClientes = () => {
             fetchData();
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error);
+            toast.error(error.message || 'Erro ao salvar cliente.');
             return false;
         }
     };
@@ -139,7 +141,7 @@ export default function Clientes() {
     }), [clientes]);
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold">Gestão de Clientes</h1>
@@ -251,11 +253,17 @@ const GridView = ({ clientes, onEdit, onDelete }) => (
     </div>
 );
 
-// --- MODAL DE CLIENTE COM O DESIGN CORRETO ---
+// --- MODAL DE CLIENTE ---
 const TagInput = ({ value, onChange, placeholder }) => { const [inputValue, setInputValue] = useState(''); const handleKeyDown = (e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); const newTag = inputValue.trim(); if (newTag && !value.includes(newTag)) { onChange([...value, newTag]); } setInputValue(''); } }; const removeTag = (tagToRemove) => { onChange(value.filter(tag => tag !== tagToRemove)); }; return ( <div><div className="flex flex-wrap gap-2 mb-2 min-h-[24px]">{value.map(tag => ( <span key={tag} className="flex items-center gap-1 bg-indigo-100 text-indigo-800 text-sm font-medium px-2.5 py-0.5 rounded-full dark:bg-indigo-900 dark:text-indigo-300"> {tag} <button type="button" onClick={() => removeTag(tag)} className="ml-1 text-indigo-500 hover:text-indigo-700"><IconX size={14} /></button></span> ))}</div><input type="text" value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyDown={handleKeyDown} className="input-form w-full" placeholder={placeholder} /></div> ); };
 
 function ModalCliente({ aberto, aoFechar, aoSalvar, cliente }) {
-    const initialState = { nome: '', email: '', cpf: '', telefone: '', tipo: 'Pessoa Física', cnpj: '', inscricaoEstadual: '', ramoAtividade: '', endereco: '', cidade: '', estado: '', cep: '', cargoContatoPrincipal: '', contatoSecundarioNome: '', contatoSecundarioTelefone: '', contatoSecundarioEmail: '', preferenciasEvento: '', origemCliente: '', dataAniversario: '', dataFundacaoEmpresa: '', status: 'Lead', tags: [], notas: '' };
+    const initialState = { 
+        nome: '', email: '', cpf: '', telefone: '', tipo: 'Pessoa Física', cnpj: '', 
+        inscricaoEstadual: '', ramoAtividade: '', endereco: '', cidade: '', estado: '', cep: '', 
+        cargoContatoPrincipal: '', contatoSecundarioNome: '', contatoSecundarioTelefone: '', 
+        contatoSecundarioEmail: '', preferenciasEvento: '', origemCliente: '', 
+        dataAniversario: '', dataFundacaoEmpresa: '', status: 'Lead', tags: [], notas: '' 
+    };
     const [formData, setFormData] = useState(initialState);
     const [activeTab, setActiveTab] = useState('geral');
     const [errors, setErrors] = useState({});
@@ -263,7 +271,36 @@ function ModalCliente({ aberto, aoFechar, aoSalvar, cliente }) {
     useEffect(() => {
         if (aberto) {
             if (cliente) {
-                setFormData({ ...initialState, ...cliente, tags: Array.isArray(cliente.tags) ? cliente.tags : [], dataAniversario: cliente.dataAniversario ? new Date(cliente.dataAniversario).toISOString().split('T')[0] : '', dataFundacaoEmpresa: cliente.dataFundacaoEmpresa ? new Date(cliente.dataFundacaoEmpresa).toISOString().split('T')[0] : '' });
+                // Ao editar, tentamos preencher os campos secundários com base nos contatos existentes
+                let contatoSec = { nome: '', telefone: '', email: '' };
+                let cargoPrincipal = '';
+
+                // Verifica se o cliente tem contatos (vindo do backend)
+                if (cliente.contacts && Array.isArray(cliente.contacts)) {
+                    const principal = cliente.contacts.find(c => c.isPrincipal);
+                    const secundario = cliente.contacts.find(c => !c.isPrincipal);
+                    
+                    if (principal) cargoPrincipal = principal.cargo || '';
+                    if (secundario) {
+                        contatoSec = {
+                            nome: secundario.nome || '',
+                            telefone: secundario.telefone || '',
+                            email: secundario.email || ''
+                        };
+                    }
+                }
+
+                setFormData({ 
+                    ...initialState, 
+                    ...cliente, 
+                    cargoContatoPrincipal: cargoPrincipal, // Preenche cargo
+                    contatoSecundarioNome: contatoSec.nome,
+                    contatoSecundarioTelefone: contatoSec.telefone,
+                    contatoSecundarioEmail: contatoSec.email,
+                    tags: Array.isArray(cliente.tags) ? cliente.tags : [], 
+                    dataAniversario: cliente.dataAniversario ? new Date(cliente.dataAniversario).toISOString().split('T')[0] : '', 
+                    dataFundacaoEmpresa: cliente.dataFundacaoEmpresa ? new Date(cliente.dataFundacaoEmpresa).toISOString().split('T')[0] : '' 
+                });
             } else {
                 setFormData(initialState);
             }
@@ -287,7 +324,38 @@ function ModalCliente({ aberto, aoFechar, aoSalvar, cliente }) {
             setActiveTab('geral');
             return;
         }
-        aoSalvar({ ...formData, dataAniversario: formData.dataAniversario || null, dataFundacaoEmpresa: formData.dataFundacaoEmpresa || null }, cliente);
+
+        // --- CORREÇÃO AQUI: MONTAGEM DO ARRAY DE CONTATOS ---
+        const contacts = [];
+
+        // 1. Contato Principal (Baseado nos dados do próprio cliente + cargo)
+        contacts.push({
+            nome: formData.nome,
+            email: formData.email,
+            telefone: formData.telefone,
+            cargo: formData.cargoContatoPrincipal,
+            isPrincipal: true
+        });
+
+        // 2. Contato Secundário (Se houver nome preenchido)
+        if (formData.contatoSecundarioNome) {
+            contacts.push({
+                nome: formData.contatoSecundarioNome,
+                email: formData.contatoSecundarioEmail,
+                telefone: formData.contatoSecundarioTelefone,
+                cargo: 'Secundário',
+                isPrincipal: false
+            });
+        }
+
+        const dadosParaEnviar = {
+            ...formData,
+            dataAniversario: formData.dataAniversario || null,
+            dataFundacaoEmpresa: formData.dataFundacaoEmpresa || null,
+            contacts: contacts // Enviamos o array que o backend espera
+        };
+
+        aoSalvar(dadosParaEnviar, cliente);
     };
 
     const handleChange = (e) => {
@@ -311,11 +379,11 @@ function ModalCliente({ aberto, aoFechar, aoSalvar, cliente }) {
         <AnimatePresence>
             {aberto && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} transition={{ duration: 0.2 }} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col">
+                    <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} transition={{ duration: 0.2 }} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh]">
                         <div className="p-6 flex justify-between items-center flex-shrink-0"><h2 className="text-2xl font-bold">{cliente ? "Editar Cliente" : "Novo Cliente"}</h2><button onClick={aoFechar} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><IconX size={22}/></button></div>
                         <form onSubmit={handleSubmit} className="flex-grow overflow-hidden flex flex-col">
                             <div className="border-b dark:border-gray-700 flex-shrink-0 px-8"><nav className="flex space-x-8"><TabButton tabId="geral">Geral</TabButton><TabButton tabId="contatos">Contatos</TabButton><TabButton tabId="endereco">Endereço</TabButton><TabButton tabId="organizacao">Organização</TabButton></nav></div>
-                            <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="p-8 space-y-6 overflow-y-auto flex-grow max-h-[60vh]">
+                            <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="p-8 space-y-6 overflow-y-auto flex-grow">
                                 {activeTab === 'geral' && (
                                     <div className="space-y-6"><h3 className="text-xl font-semibold text-gray-800 dark:text-white">Informações Gerais</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><div><label className="label-form">Tipo de Cliente</label><select name="tipo" value={formData.tipo} onChange={handleChange} className="input-form w-full"><option>Pessoa Física</option><option>Pessoa Jurídica</option></select></div><div></div><div><label className="label-form">{formData.tipo === 'Pessoa Física' ? 'Nome Completo*' : 'Razão Social*'}</label><input type="text" name="nome" value={formData.nome} onChange={handleChange} className={`input-form w-full ${errors.nome ? 'input-error' : ''}`} /></div>
                                     {/* --- CAMPO CONDICIONAL CPF/CNPJ --- */}

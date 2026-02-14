@@ -9,7 +9,6 @@ import { X as IconX, Calendar, Users, CheckCircle, Clock, Tag, Filter, ChevronLe
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-// CORRIGIDO: Usa o atalho '@' para garantir que o caminho é encontrado no build.
 import { getCalendarEvents, getAllUsers } from '@/services/api';
 
 // --- COMPONENTES AUXILIARES ---

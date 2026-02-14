@@ -6,7 +6,6 @@ const DraggableObject = ({ type, icon: Icon, label }) => {
     <div
       draggable
       onDragStart={(e) => {
-        // Passando também o 'label' para usar como nome padrão
         e.dataTransfer.setData('application/json', JSON.stringify({ type, label }));
       }}
       className="flex items-center gap-3 p-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-gray-700 hover:text-indigo-600 dark:hover:text-indigo-300 cursor-grab transition-colors text-left"

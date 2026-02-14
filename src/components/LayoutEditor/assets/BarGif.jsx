@@ -2,7 +2,6 @@ import React from 'react';
 import GifAsset from '../assets/GifAsset'; // Usando o componente de GIF
 
 const BarGif = (props) => {
-  // Supondo que o GIF tenha 250px de largura e 150px de altura
   return (
     <GifAsset 
       src="/img/bargif.gif" 
