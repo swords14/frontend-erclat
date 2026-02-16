@@ -1,60 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Filter, X, Eye, Code, ClipboardCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    Filter, X, Eye, Code, ClipboardCheck, User, Calendar, 
+    ShieldCheck, Search, ChevronDown, Terminal, Loader2 // <-- ADICIONADO AQUI
+} from 'lucide-react';
 import toast from 'react-hot-toast';
-// Importe as funções da sua API central
-import { getAuditLogs, getAllUsers } from '@/services/api'; // Ajuste o caminho se necessário
+import { getAuditLogs, getAllUsers } from '@/services/api';
 
-// --- Constantes de Estilo (Tailwind CSS) ---
-const thStyle = "px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider";
-const tdStyle = "px-4 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200";
-const inputStyle = "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5";
-const btnSecondary = "py-2 px-4 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-indigo-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700";
+const inputPremiumClass = "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all text-gray-700 font-medium";
+const labelPremiumClass = "block text-sm font-bold text-gray-700 mb-1.5 ml-1";
 
-// --- Componentes Auxiliares ---
-
-const Modal = ({ isOpen, onClose, children, title }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4 transition-opacity duration-300" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-transform duration-300 scale-95 animate-modal-in" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <X className="h-6 w-6" />
-          </button>
-        </div>
-        <div className="p-6 overflow-y-auto">{children}</div>
-      </div>
-    </div>
-  );
+const entityTypeTranslations = { 
+    'Client': 'Clientes', 'Event': 'Eventos', 'Transaction': 'Financeiro', 
+    'Supplier': 'Fornecedores', 'InventoryItem': 'Estoque', 'User': 'Usuários', 
+    'Auth': 'Segurança', 'Task': 'Tarefas', 'Budget': 'Orçamentos' 
 };
 
-const LoadingSpinner = () => (
-    <div className="flex justify-center items-center p-10"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
-);
-
-// --- Lógica de Tradução e Formatação ---
-
-const entityTypeTranslations = { 'Client': 'Clientes', 'Event': 'Eventos', 'Transaction': 'Transações', 'Supplier': 'Fornecedores', 'InventoryItem': 'Estoque', 'User': 'Usuários', 'Auth': 'Autenticação', 'Task': 'Tarefas', 'Budget': 'Orçamentos' };
-const actionTranslations = { 'CREATE': 'Criação', 'UPDATE': 'Atualização', 'DELETE': 'Exclusão', 'LOGIN_SUCCESS': 'Login (Sucesso)', 'LOGIN_FAILURE': 'Login (Falha)', 'LOGIN_SUCCESS_2FA': 'Login (2 Fatores)', '2FA_LOGIN_FAILURE': 'Login (Falha 2FA)', 'USER_REGISTERED': 'Registro de Usuário' };
-const formatarData = (isoString) => isoString ? new Date(isoString).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
-
-const generateHumanReadableDetails = (log) => {
-    if (!log) return null;
-    const details = log.details || {};
-    switch (log.action) {
-        case 'LOGIN_SUCCESS': case 'LOGIN_SUCCESS_2FA':
-            return <p>O acesso ao sistema foi realizado com sucesso a partir do IP: <span className="font-semibold text-green-600 dark:text-green-400">{details.ip || 'Não registrado'}</span>.</p>;
-        case 'LOGIN_FAILURE':
-            return <p>Houve uma tentativa de login malsucedida. Motivo: <span className="font-semibold text-red-600 dark:text-red-400">{details.reason || 'Desconhecido'}</span>.</p>;
-        case 'USER_REGISTERED':
-            return <p>Um novo usuário foi criado no sistema, originado do IP: <span className="font-semibold">{details.ip || 'Não registrado'}</span>.</p>;
-        default:
-            return <p className="text-gray-600 dark:text-gray-400">Esta ação não possui um resumo detalhado. Verifique o log técnico para mais informações.</p>;
-    }
+const actionTranslations = { 
+    'CREATE': 'Criação', 'UPDATE': 'Edição', 'DELETE': 'Exclusão', 
+    'LOGIN_SUCCESS': 'Acesso', 'LOGIN_FAILURE': 'Falha Login', 
+    'LOGIN_SUCCESS_2FA': 'Acesso 2FA', '2FA_LOGIN_FAILURE': 'Erro 2FA', 
+    'USER_REGISTERED': 'Novo Registro' 
 };
 
-// --- Componente Principal ---
+const formatarData = (isoString) => isoString ? new Date(isoString).toLocaleString('pt-BR') : '—';
 
 export default function AuditoriaPage() {
   const [logs, setLogs] = useState([]);
@@ -66,20 +35,21 @@ export default function AuditoriaPage() {
   const [showTechnicalLog, setShowTechnicalLog] = useState(false);
   const [usuarios, setUsuarios] = useState([]);
 
-  // CORRIGIDO: Usa a função centralizada getAllUsers
   const fetchUsers = useCallback(async () => {
     try {
         const usersData = await getAllUsers();
         setUsuarios(usersData);
     } catch (error) { 
-        toast.error(error.message || 'Falha ao buscar usuários'); 
+        toast.error('Erro ao sincronizar usuários'); 
     }
   }, []);
 
-  // CORRIGIDO: Usa a função centralizada getAuditLogs
   const fetchLogs = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ page: pagination.currentPage.toString(), limit: pagination.itemsPerPage.toString() });
+    const params = new URLSearchParams({ 
+        page: pagination.currentPage.toString(), 
+        limit: pagination.itemsPerPage.toString() 
+    });
     Object.entries(filters).forEach(([key, value]) => { if (value) params.append(key, value); });
 
     try {
@@ -87,7 +57,7 @@ export default function AuditoriaPage() {
       setLogs(result.data);
       setPagination(prev => ({ ...prev, totalPages: result.totalPages, currentPage: result.currentPage }));
     } catch (err) { 
-        toast.error(err.message || "Erro ao carregar logs."); 
+        toast.error("Erro ao carregar trilha de auditoria."); 
     } 
     finally { setLoading(false); }
   }, [pagination.currentPage, pagination.itemsPerPage, filters]);
@@ -108,103 +78,198 @@ export default function AuditoriaPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <header className="flex items-center gap-4 mb-8">
-        <div className="bg-indigo-100 dark:bg-indigo-900/40 p-3 rounded-xl"><ClipboardCheck className="h-8 w-8 text-indigo-600 dark:text-indigo-400" /></div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Auditoria do Sistema</h1>
+    <div className="flex flex-col gap-8 p-4 md:p-8 min-h-screen">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 className="text-3xl font-light text-gray-800 tracking-wide flex items-center gap-3">
+                Trilha de <span className="font-bold text-amber-600">Auditoria</span>
+                <ShieldCheck className="text-amber-400" size={28} />
+            </h1>
+            <p className="mt-1 text-gray-500 font-medium">Histórico completo de ações e acessos ao sistema.</p>
+        </div>
       </header>
 
-      <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2"><Filter className="w-5 h-5" /> Filtros</h2>
+      <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
+        <div className="flex items-center gap-2 mb-6 px-2 text-gray-800">
+            <Filter size={18} className="text-amber-500" />
+            <span className="font-bold">Filtrar Atividades</span>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <input type="date" name="dataInicio" value={filters.dataInicio} onChange={handleFilterChange} className={inputStyle} />
-          <input type="date" name="dataFim" value={filters.dataFim} onChange={handleFilterChange} className={inputStyle} />
-          <select name="usuarioId" value={filters.usuarioId} onChange={handleFilterChange} className={inputStyle}>
-            <option value="">Todos os Usuários</option>
-            {usuarios.map(user => (<option key={user.id} value={user.id}>{user.nome}</option>))}
-          </select>
-          <select name="entityType" value={filters.entityType} onChange={handleFilterChange} className={inputStyle}>
-            <option value="">Todos os Módulos</option>
-            {Object.entries(entityTypeTranslations).map(([key, value]) => (<option key={key} value={key}>{value}</option>))}
-          </select>
-          <select name="action" value={filters.action} onChange={handleFilterChange} className={inputStyle}>
-            <option value="">Todas as Ações</option>
-            {Object.entries(actionTranslations).map(([key, value]) => (<option key={key} value={key}>{value}</option>))}
-          </select>
+          <div><label className={labelPremiumClass}>Início</label><input type="date" name="dataInicio" value={filters.dataInicio} onChange={handleFilterChange} className={inputPremiumClass} /></div>
+          <div><label className={labelPremiumClass}>Fim</label><input type="date" name="dataFim" value={filters.dataFim} onChange={handleFilterChange} className={inputPremiumClass} /></div>
+          <div>
+            <label className={labelPremiumClass}>Usuário</label>
+            <select name="usuarioId" value={filters.usuarioId} onChange={handleFilterChange} className={inputPremiumClass}>
+                <option value="">Todos</option>
+                {usuarios.map(user => (<option key={user.id} value={user.id}>{user.nome}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className={labelPremiumClass}>Módulo</label>
+            <select name="entityType" value={filters.entityType} onChange={handleFilterChange} className={inputPremiumClass}>
+                <option value="">Todos</option>
+                {Object.entries(entityTypeTranslations).map(([key, value]) => (<option key={key} value={key}>{value}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className={labelPremiumClass}>Ação</label>
+            <select name="action" value={filters.action} onChange={handleFilterChange} className={inputPremiumClass}>
+                <option value="">Todas</option>
+                {Object.entries(actionTranslations).map(([key, value]) => (<option key={key} value={key}>{value}</option>))}
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden">
+      <div className="bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700/50">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50/50 border-b border-gray-200">
               <tr>
-                <th className={thStyle}>Data/Hora</th><th className={thStyle}>Usuário</th>
-                <th className={thStyle}>Módulo</th><th className={thStyle}>Ação</th>
-                <th className={thStyle}>Item Afetado (ID)</th>
+                <th className="p-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Data / Hora</th>
+                <th className="p-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Usuário</th>
+                <th className="p-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Módulo</th>
+                <th className="p-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Ação Realizada</th>
+                <th className="p-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Referência</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan="5"><LoadingSpinner /></td></tr>
+                <tr>
+                    <td colSpan="5" className="p-16 text-center">
+                        <Loader2 className="animate-spin text-amber-500 mx-auto" size={32}/>
+                        <p className="mt-2 text-gray-500 font-medium">Buscando registros...</p>
+                    </td>
+                </tr>
               ) : logs.length === 0 ? (
-                <tr><td colSpan="5" className="py-8 text-center text-gray-500">Nenhum registro encontrado.</td></tr>
+                <tr><td colSpan="5" className="p-16 text-center text-gray-400 font-medium">Nenhum evento registrado com esses filtros.</td></tr>
               ) : (
                 logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer transition-colors duration-150" onClick={() => handleRowClick(log)}>
-                    <td className={tdStyle}>{formatarData(log.createdAt)}</td><td className={tdStyle}>{log.user?.nome || 'Usuário Deletado'}</td>
-                    <td className={tdStyle}>{entityTypeTranslations[log.entityType] || log.entityType}</td>
-                    <td className={tdStyle}>{actionTranslations[log.action] || log.action}</td>
-                    <td className={tdStyle}><span className="font-mono bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-md text-xs">{log.entityId}</span></td>
+                  <tr key={log.id} className="hover:bg-amber-50/30 cursor-pointer transition-colors group" onClick={() => handleRowClick(log)}>
+                    <td className="p-5 font-medium text-gray-500 text-sm">{formatarData(log.createdAt)}</td>
+                    <td className="p-5">
+                        <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-[10px]">
+                                {log.user?.nome ? log.user.nome.charAt(0).toUpperCase() : '?'}
+                            </div>
+                            <span className="font-bold text-gray-900 text-sm">{log.user?.nome || 'Sistema'}</span>
+                        </div>
+                    </td>
+                    <td className="p-5 font-bold text-gray-700 text-xs">
+                        <span className="bg-gray-100 px-3 py-1 rounded-lg border border-gray-200">
+                            {entityTypeTranslations[log.entityType] || log.entityType}
+                        </span>
+                    </td>
+                    <td className="p-5">
+                        <span className={`text-xs font-black uppercase tracking-tighter ${
+                            log.action === 'DELETE' ? 'text-rose-600' : 
+                            log.action === 'CREATE' ? 'text-emerald-600' : 
+                            'text-amber-600'
+                        }`}>
+                            {actionTranslations[log.action] || log.action}
+                        </span>
+                    </td>
+                    <td className="p-5"><span className="font-mono text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">ID: {log.entityId}</span></td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-3 sm:px-6 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-700 dark:text-gray-300 border-t dark:border-gray-700">
-          <div>Página <strong>{pagination.currentPage}</strong> de <strong>{pagination.totalPages}</strong></div>
-          <div className="flex items-center space-x-2 mt-2 sm:mt-0">
-            <button onClick={() => setPagination(p => ({...p, currentPage: Math.max(p.currentPage - 1, 1)}))} disabled={pagination.currentPage === 1} className={btnSecondary}>Anterior</button>
-            <button onClick={() => setPagination(p => ({...p, currentPage: Math.min(p.currentPage + 1, p.totalPages)}))} disabled={pagination.currentPage === pagination.totalPages || pagination.totalPages === 0} className={btnSecondary}>Próxima</button>
+
+        <div className="p-6 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-sm font-bold text-gray-500">Página {pagination.currentPage} de {pagination.totalPages}</p>
+          <div className="flex items-center gap-3">
+            <button 
+                onClick={() => setPagination(p => ({...p, currentPage: Math.max(p.currentPage - 1, 1)}))} 
+                disabled={pagination.currentPage === 1}
+                className="px-4 py-2 bg-white border border-gray-200 text-gray-600 font-bold rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-all"
+            > Anterior </button>
+            <button 
+                onClick={() => setPagination(p => ({...p, currentPage: Math.min(p.currentPage + 1, p.totalPages)}))} 
+                disabled={pagination.currentPage === pagination.totalPages || pagination.totalPages === 0}
+                className="px-4 py-2 bg-white border border-gray-200 text-gray-600 font-bold rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-all"
+            > Próxima </button>
           </div>
         </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Detalhes da Atividade">
-        {selectedLog && (
-          <div className="space-y-6 text-sm text-gray-700 dark:text-gray-300">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                <div><strong className="font-semibold text-gray-900 dark:text-white">Usuário:</strong> {selectedLog.user.nome}</div>
-                <div><strong className="font-semibold text-gray-900 dark:text-white">Data/Hora:</strong> {formatarData(selectedLog.createdAt)}</div>
-                <div><strong className="font-semibold text-gray-900 dark:text-white">Módulo:</strong> {entityTypeTranslations[selectedLog.entityType] || selectedLog.entityType}</div>
-                <div><strong className="font-semibold text-gray-900 dark:text-white">Ação:</strong> {actionTranslations[selectedLog.action] || selectedLog.action}</div>
-            </div>
-            
-            <div className="space-y-2">
-              <h4 className="font-semibold text-gray-900 dark:text-white">Resumo:</h4>
-              <div className="p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg">{generateHumanReadableDetails(selectedLog)}</div>
-            </div>
+      <AnimatePresence>
+        {isModalOpen && selectedLog && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white rounded-[2rem] shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+                    
+                    <div className="p-6 md:p-8 flex justify-between items-center border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
+                        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                            <Terminal className="text-amber-500" size={24}/> Detalhes da Atividade
+                        </h2>
+                        <button onClick={() => setIsModalOpen(false)} className="p-2 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"><X size={24}/></button>
+                    </div>
 
-            {showTechnicalLog && (
-                 <div className="space-y-2 pt-4 border-t dark:border-gray-700 animate-fade-in">
-                    <h4 className="font-semibold text-amber-600 dark:text-amber-400">Log Técnico</h4>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                        <div><strong className="font-semibold text-gray-900 dark:text-white">Log ID:</strong> {selectedLog.id}</div>
-                        <div><strong className="font-semibold text-gray-900 dark:text-white">Item ID:</strong> {selectedLog.entityId}</div>
-                     </div>
-                    <pre className="bg-gray-900 text-white p-4 rounded-md text-xs whitespace-pre-wrap overflow-x-auto">{JSON.stringify(selectedLog.details, null, 2)}</pre>
-                 </div>
-            )}
-            
-            <div className="pt-6 flex justify-end">
-                <button onClick={() => setShowTechnicalLog(!showTechnicalLog)} className={`${btnSecondary} flex items-center gap-2`}>
-                    {showTechnicalLog ? <><Eye className="w-4 h-4" /> Visão Simplificada</> : <><Code className="w-4 h-4" /> Ver Log Técnico</>}
-                </button>
-            </div>
-          </div>
+                    <div className="p-8 space-y-8 overflow-y-auto flex-grow custom-scrollbar">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <User className="text-amber-500" size={18}/>
+                                <div><p className="text-xs font-bold text-gray-400 uppercase">Usuário</p><p className="font-bold text-gray-800">{selectedLog.user.nome}</p></div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Calendar className="text-amber-500" size={18}/>
+                                <div><p className="text-xs font-bold text-gray-400 uppercase">Data/Hora</p><p className="font-bold text-gray-800">{formatarData(selectedLog.createdAt)}</p></div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Search className="text-amber-500" size={18}/>
+                                <div><p className="text-xs font-bold text-gray-400 uppercase">Módulo</p><p className="font-bold text-gray-800">{entityTypeTranslations[selectedLog.entityType] || selectedLog.entityType}</p></div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <ShieldCheck className="text-amber-500" size={18}/>
+                                <div><p className="text-xs font-bold text-gray-400 uppercase">Ação</p><p className="font-bold text-gray-800">{actionTranslations[selectedLog.action] || selectedLog.action}</p></div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest px-1">Resumo Executivo</h3>
+                            <div className="p-5 bg-amber-50 border border-amber-100 rounded-2xl text-amber-900 font-medium leading-relaxed">
+                                {selectedLog.action.includes('LOGIN') ? (
+                                    <p>O sistema registrou uma tentativa de acesso via IP <span className="font-black underline">{selectedLog.details?.ip || 'não identificado'}</span> com status de <span className="font-black uppercase">{selectedLog.action}</span>.</p>
+                                ) : (
+                                    <p>O usuário realizou uma operação de <span className="font-black">{actionTranslations[selectedLog.action]}</span> no item de referência <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-200">{selectedLog.entityId}</span> do módulo {entityTypeTranslations[selectedLog.entityType]}.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="pt-2">
+                            <button 
+                                onClick={() => setShowTechnicalLog(!showTechnicalLog)} 
+                                className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all"
+                            >
+                                <div className="flex items-center gap-2 font-bold text-gray-700">
+                                    <Code size={18} className="text-indigo-500" />
+                                    Dados Técnicos do Evento (JSON)
+                                </div>
+                                <ChevronDown size={20} className={`text-gray-400 transition-transform ${showTechnicalLog ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                                {showTechnicalLog && (
+                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                        <div className="mt-4 p-4 bg-zinc-900 rounded-xl">
+                                            <pre className="text-xs text-emerald-400 font-mono overflow-x-auto p-2 custom-scrollbar leading-relaxed">
+                                                {JSON.stringify(selectedLog.details, null, 2)}
+                                            </pre>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
+
+                    <div className="p-6 md:p-8 bg-gray-50/50 border-t border-gray-100 flex justify-end flex-shrink-0">
+                        <button onClick={() => setIsModalOpen(false)} className="px-8 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-xl transition-colors">Fechar Inspeção</button>
+                    </div>
+                </motion.div>
+            </motion.div>
         )}
-      </Modal>
+      </AnimatePresence>
     </div>
   );
 }

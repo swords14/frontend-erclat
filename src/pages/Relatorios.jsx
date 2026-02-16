@@ -1,24 +1,37 @@
-// Caminho do arquivo: frontend/src/pages/Relatorios.jsx
-// CORRIGIDO: Usa o serviço de API centralizado
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { startOfMonth, endOfMonth, format, parseISO } from 'date-fns';
+import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DateRangePicker } from 'react-date-range';
 import toast from 'react-hot-toast';
 
-// Estilos do react-date-range
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
-// Ícones
-import { ArrowLeft, Printer, DollarSign, TrendingUp, Calendar, Users, Truck, Scaling, X as IconX, BarChart3, Package, FileText } from 'lucide-react';
-// Importe a nova função da sua API central
+import { ArrowLeft, Printer, DollarSign, TrendingUp, Calendar, Users, Truck, Scaling, BarChart3, Package, FileText, ChevronDown } from 'lucide-react';
 import { getReportData } from '@/services/api';
 
-// --- HOOK PERSONALIZADO ---
+const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
+
+const PREMIUM_COLORS = ['#f59e0b', '#10b981', '#0ea5e9', '#f43f5e', '#8b5cf6', '#64748b'];
+
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) { 
+        return ( 
+            <div className="bg-white/95 backdrop-blur-md text-gray-800 p-4 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-100"> 
+                {label && <p className="font-bold text-gray-900 mb-2">{label}</p>}
+                {payload.map((pld, index) => ( 
+                    <p key={index} style={{ color: pld.fill || pld.stroke }} className="font-semibold text-sm flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pld.fill || pld.stroke }}></span>
+                        {`${pld.name}: ${formatarMoeda(pld.value)}`}
+                    </p> 
+                ))} 
+            </div> 
+        ); 
+    } return null; 
+};
+
 const useRelatorios = () => {
     const [view, setView] = useState('hub');
     const [dateRange, setDateRange] = useState([{ startDate: startOfMonth(new Date()), endDate: endOfMonth(new Date()), key: 'selection' }]);
@@ -36,11 +49,10 @@ const useRelatorios = () => {
         const endDateISO = format(endDate, 'yyyy-MM-dd');
 
         try {
-            // CORRIGIDO: Usa a função centralizada getReportData
             const data = await getReportData(reportName, startDateISO, endDateISO);
             setReportData(data);
         } catch (error) {
-            toast.error(error.message || `Erro ao buscar o relatório.`);
+            toast.error(error.message || `Erro ao processar relatório.`);
         } finally {
             setIsLoading(false);
         }
@@ -63,36 +75,53 @@ const useRelatorios = () => {
     return { view, changeView, dateRange, changeDateRange, reportData, isLoading };
 };
 
-// --- COMPONENTES DE UI ---
-const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
-const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f97316', '#10b981', '#f59e0b'];
-const KPICard = ({ title, value, icon: Icon, valueClassName = '' }) => (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md flex items-center gap-4">
-        <div className="p-3 bg-indigo-100 dark:bg-gray-700 rounded-lg"><Icon className="text-indigo-500 dark:text-indigo-400" size={24}/></div>
-        <div><p className="text-sm text-gray-500 dark:text-gray-400">{title}</p><p className={`text-xl font-bold ${valueClassName}`}>{value}</p></div>
-    </div>
-);
-const ReportCard = ({ title, description, icon: Icon, onClick }) => (
-    <motion.div whileHover={{ y: -5 }} onClick={onClick} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md cursor-pointer h-full flex flex-col gap-4">
-        <div className="flex items-start justify-between">
-            <div className="p-3 bg-indigo-100 dark:bg-gray-700 rounded-lg"><Icon className="text-indigo-500 dark:text-indigo-400" size={24}/></div>
+const KPICard = ({ title, value, icon: Icon, corIcone = "text-amber-500", bgIcone = "bg-amber-50" }) => (
+    <motion.div 
+        whileHover={{ y: -4 }} 
+        className="bg-white p-6 rounded-2xl border border-gray-200 shadow-[0_2px_15px_rgba(0,0,0,0.02)] flex items-center gap-5 transition-all duration-300 hover:border-amber-300 hover:shadow-[0_4px_20px_rgba(245,158,11,0.05)]"
+    >
+        <div className={`p-3.5 ${bgIcone} border border-gray-100 rounded-xl`}>
+            <Icon className={corIcone} size={24} strokeWidth={1.5} />
         </div>
         <div>
-            <h3 className="text-lg font-bold mb-1">{title}</h3>
-            <p className="text-sm text-gray-500">{description}</p>
+            <p className="text-sm text-gray-500 font-medium tracking-wide">{title}</p>
+            <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
         </div>
     </motion.div>
 );
-const LoadingSpinner = () => <div className="flex justify-center items-center h-64"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>;
 
-// --- COMPONENTE PRINCIPAL ---
+const ReportCard = ({ title, description, icon: Icon, onClick }) => (
+    <motion.div 
+        whileHover={{ y: -6 }} 
+        onClick={onClick} 
+        className="bg-white p-8 rounded-[2rem] border border-gray-200 shadow-sm cursor-pointer h-full flex flex-col gap-5 hover:border-amber-300 hover:shadow-xl hover:shadow-amber-500/10 transition-all group"
+    >
+        <div className="flex items-start justify-between">
+            <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl group-hover:bg-amber-50 group-hover:border-amber-100 transition-colors duration-300">
+                <Icon className="text-gray-400 group-hover:text-amber-500 transition-colors duration-300" size={32} strokeWidth={1.5}/>
+            </div>
+        </div>
+        <div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-amber-600 transition-colors duration-300">{title}</h3>
+            <p className="text-sm text-gray-500 font-medium leading-relaxed">{description}</p>
+        </div>
+    </motion.div>
+);
+
+const LoadingSpinner = () => (
+    <div className="flex flex-col justify-center items-center h-64">
+        <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-gray-500 font-bold tracking-wide">Processando métricas...</p>
+    </div>
+);
+
 export default function Relatorios() {
     const { view, changeView, dateRange, changeDateRange, reportData, isLoading } = useRelatorios();
     const [datePickerAberto, setDatePickerAberto] = useState(false);
     const datePickerRef = useRef(null);
 
     const reportTitle = { 
-        financeiro: 'Relatório Financeiro', vendas: 'Relatório de Vendas', operacoes: 'Relatório de Operações',
+        financeiro: 'Relatório Financeiro', vendas: 'Métricas de Vendas', operacoes: 'Relatório de Operações',
         analiseCliente: 'Análise de Clientes', analiseFornecedor: 'Análise de Fornecedores',
         lucratividadeEvento: 'Lucratividade por Evento', sazonalidade: 'Análise de Sazonalidade',
         estoque: 'Relatório de Estoque'
@@ -110,41 +139,58 @@ export default function Relatorios() {
 
     if (view === 'hub') {
         return (
-            <div className="flex flex-col gap-6">
-                <div><h1 className="text-3xl font-bold">Hub de Relatórios</h1><p className="mt-1 text-gray-500">Análises e insights sobre o seu negócio.</p></div>
+            <div className="flex flex-col gap-8 p-4 md:p-8 min-h-screen">
+                <header>
+                    <h1 className="text-3xl font-light text-gray-800 tracking-wide flex items-center gap-3">
+                        Central de <span className="font-bold text-amber-600">Inteligência</span>
+                        <BarChart3 className="text-amber-400" size={28} />
+                    </h1>
+                    <p className="mt-1 text-gray-500 font-medium">Extraia insights e analise o desempenho do seu negócio.</p>
+                </header>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <ReportCard title="Financeiro" description="Receitas, despesas, lucro e fluxo de caixa." icon={DollarSign} onClick={() => changeView('financeiro')} />
-                    <ReportCard title="Vendas" description="Funil, conversão e performance de orçamentos." icon={TrendingUp} onClick={() => changeView('vendas')} />
-                    <ReportCard title="Operações" description="Volume de eventos, convidados e tipos." icon={Calendar} onClick={() => changeView('operacoes')} />
-                    <ReportCard title="Análise de Clientes" description="Identifique seus clientes mais valiosos." icon={Users} onClick={() => changeView('analiseCliente')} />
-                    <ReportCard title="Análise de Fornecedores" description="Controle os gastos com seus parceiros." icon={Truck} onClick={() => changeView('analiseFornecedor')} />
-                    <ReportCard title="Lucratividade" description="Descubra a margem de lucro de cada evento." icon={Scaling} onClick={() => changeView('lucratividadeEvento')} />
-                    <ReportCard title="Sazonalidade" description="Entenda os períodos de alta e baixa demanda." icon={BarChart3} onClick={() => changeView('sazonalidade')} />
-                    <ReportCard title="Estoque" description="Giro de itens e valor total em estoque." icon={Package} onClick={() => changeView('estoque')} />
+                    <ReportCard title="Financeiro" description="Receitas, despesas, lucro líquido e fluxo de caixa detalhado." icon={DollarSign} onClick={() => changeView('financeiro')} />
+                    <ReportCard title="Vendas" description="Funil de negociação, conversão e performance de propostas." icon={TrendingUp} onClick={() => changeView('vendas')} />
+                    <ReportCard title="Operações" description="Volume de eventos, controle de convidados e tipos de celebrações." icon={Calendar} onClick={() => changeView('operacoes')} />
+                    <ReportCard title="Análise de Clientes" description="Identifique seus clientes VIPs e frequência de contratação." icon={Users} onClick={() => changeView('analiseCliente')} />
+                    <ReportCard title="Fornecedores" description="Controle os maiores centros de custo com parceiros externos." icon={Truck} onClick={() => changeView('analiseFornecedor')} />
+                    <ReportCard title="Lucratividade" description="Descubra a margem de lucro real e o custo de cada evento." icon={Scaling} onClick={() => changeView('lucratividadeEvento')} />
+                    <ReportCard title="Sazonalidade" description="Entenda os meses de alta e baixa demanda para prever caixa." icon={BarChart3} onClick={() => changeView('sazonalidade')} />
+                    <ReportCard title="Estoque" description="Giro de itens do acervo, imobilizado e valor total armazenado." icon={Package} onClick={() => changeView('estoque')} />
                 </div>
             </div>
         );
     }
     
     return (
-        <div className="flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col gap-8 p-4 md:p-8 min-h-screen">
+            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                    <button onClick={() => changeView('hub')} className="flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 mb-2"><ArrowLeft size={16}/> Voltar ao Hub</button>
-                    <h1 className="text-3xl font-bold">{reportTitle}</h1>
-                    <p className="text-sm text-gray-500">Período: {format(dateRange[0].startDate, 'dd/MM/yy', {locale: ptBR})} a {format(dateRange[0].endDate, 'dd/MM/yy', {locale: ptBR})}</p>
+                    <button onClick={() => changeView('hub')} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-amber-600 mb-3 transition-colors uppercase tracking-wider">
+                        <ArrowLeft size={16}/> Voltar para o Hub
+                    </button>
+                    <h1 className="text-3xl font-bold text-gray-900">{reportTitle}</h1>
                 </div>
-                <div className="flex items-center gap-2 relative">
-                    <button onClick={() => setDatePickerAberto(p => !p)} className="btn-secondary">Alterar Período</button>
-                    <button onClick={() => window.print()} className="btn-primary flex items-center gap-2"><Printer size={16}/> Imprimir</button>
+                <div className="flex items-center gap-3 relative">
+                    <button 
+                        onClick={() => setDatePickerAberto(p => !p)} 
+                        className="px-5 py-2.5 bg-white border border-gray-200 hover:border-amber-300 text-gray-700 font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all"
+                    >
+                        <Calendar size={18} className="text-amber-500" />
+                        {format(dateRange[0].startDate, 'dd/MM/yy')} a {format(dateRange[0].endDate, 'dd/MM/yy')}
+                        <ChevronDown size={16} className="text-gray-400 ml-2" />
+                    </button>
+                    <button onClick={() => window.print()} className="px-5 py-2.5 bg-gray-900 hover:bg-black text-white font-bold rounded-xl shadow-md flex items-center gap-2 transition-all">
+                        <Printer size={18}/> Imprimir PDF
+                    </button>
+                    
                     <AnimatePresence>
                         {datePickerAberto && (
                             <motion.div 
                                 ref={datePickerRef}
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 10 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="absolute top-full right-0 mt-2 z-20 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border dark:border-gray-700 overflow-hidden"
+                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 10, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                className="absolute top-full right-0 mt-2 z-50 bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden"
                             >
                                 <DateRangePicker
                                     onChange={item => changeDateRange([item.selection])}
@@ -154,16 +200,25 @@ export default function Relatorios() {
                                     ranges={dateRange}
                                     direction="horizontal"
                                     locale={ptBR}
+                                    rangeColors={['#f59e0b']}
                                 />
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
-            </div>
+            </header>
             
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md">
+            <div className="bg-transparent rounded-2xl">
                 {isLoading && <LoadingSpinner />}
-                {!isLoading && !reportData && <div className="text-center p-10 text-gray-500">Nenhum dado encontrado para o período e relatório selecionado.</div>}
+                {!isLoading && !reportData && (
+                    <div className="text-center py-20 px-6 bg-white rounded-[2rem] border border-gray-200 shadow-sm flex flex-col items-center">
+                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 border border-gray-100">
+                            <FileText size={40} className="text-gray-300" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-800">Sem dados no período</h3>
+                        <p className="mt-2 text-gray-500 font-medium max-w-sm">Altere o intervalo de datas para buscar novas métricas.</p>
+                    </div>
+                )}
                 {!isLoading && reportData && (
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -175,7 +230,7 @@ export default function Relatorios() {
                             {view === 'financeiro' && <FinanceiroReport data={reportData} />}
                             {view === 'vendas' && <VendasReport data={reportData} />}
                             {view === 'analiseCliente' && <AnaliseClienteReport data={reportData} />}
-                            {/* Adicione outros componentes de relatório aqui */}
+                            {/* Adicione os outros componentes conforme desenvolver o backend */}
                         </motion.div>
                     </AnimatePresence>
                 )}
@@ -184,30 +239,43 @@ export default function Relatorios() {
     );
 }
 
-// --- SUB-COMPONENTES DE RELATÓRIO ---
 const FinanceiroReport = ({ data }) => {
     const { kpis = {}, despesasPorCategoria = [], transacoesRecentes = [] } = data || {};
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <KPICard title="Receita Bruta" value={formatarMoeda(kpis.receita)} icon={TrendingUp} valueClassName="text-green-500" />
-                <KPICard title="Despesas Totais" value={formatarMoeda(kpis.despesa)} icon={TrendingUp} valueClassName="text-red-500" />
-                <KPICard title="Lucro Líquido" value={formatarMoeda(kpis.lucro)} icon={DollarSign} valueClassName="text-blue-500" />
+                <KPICard title="Receita Bruta Realizada" value={formatarMoeda(kpis.receita)} icon={TrendingUp} corIcone="text-emerald-500" bgIcone="bg-emerald-50" />
+                <KPICard title="Despesas Pagas" value={formatarMoeda(kpis.despesa)} icon={TrendingUp} corIcone="text-rose-500" bgIcone="bg-rose-50" />
+                <KPICard title="Lucro Líquido do Período" value={formatarMoeda(kpis.lucro)} icon={DollarSign} corIcone="text-amber-500" bgIcone="bg-amber-50" />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 <div>
-                    <h3 className="text-lg font-bold mb-4">Despesas por Categoria</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <PieChart><Pie data={despesasPorCategoria} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>{despesasPorCategoria.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip formatter={formatarMoeda}/><Legend/></PieChart>
-                    </ResponsiveContainer>
+                 <div className="bg-white p-8 rounded-[2rem] border border-gray-200 shadow-sm">
+                    <h3 className="text-lg font-bold text-gray-900 mb-6">Saídas por Categoria</h3>
+                    <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie data={despesasPorCategoria} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={5} stroke="none">
+                                    {despesasPorCategoria.map((entry, index) => <Cell key={`cell-${index}`} fill={PREMIUM_COLORS[index % PREMIUM_COLORS.length]} />)}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend iconType="circle" wrapperStyle={{ fontSize: '14px', fontWeight: 500, color: '#4b5563' }}/>
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
                  </div>
-                 <div>
-                    <h3 className="text-lg font-bold mb-4">Transações Recentes</h3>
-                    <div className="overflow-y-auto max-h-[280px] space-y-2">
+                 <div className="bg-white p-8 rounded-[2rem] border border-gray-200 shadow-sm flex flex-col">
+                    <h3 className="text-lg font-bold text-gray-900 mb-6">Últimas Movimentações do Período</h3>
+                    <div className="overflow-y-auto flex-grow custom-scrollbar pr-2 space-y-3">
+                        {transacoesRecentes.length === 0 && <p className="text-gray-400 font-medium text-center py-10">Nenhuma transação encontrada.</p>}
                         {transacoesRecentes.map(t => (
-                            <div key={t.id} className="flex justify-between items-center py-2 border-b dark:border-gray-700 last:border-none">
-                                <div><p className="font-medium">{t.descricao}</p><p className="text-xs text-gray-500">{format(parseISO(t.data), 'dd/MM/yyyy')}</p></div>
-                                <p className={`font-semibold ${t.tipo==='receita' ? 'text-green-500' : 'text-red-500'}`}>{formatarMoeda(t.valor)}</p>
+                            <div key={t.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-amber-200 transition-colors">
+                                <div>
+                                    <p className="font-bold text-gray-800">{t.descricao}</p>
+                                    <p className="text-xs text-gray-500 font-medium mt-0.5">{format(new Date(t.data), 'dd/MM/yyyy')}</p>
+                                </div>
+                                <p className={`font-black tracking-tight ${t.tipo==='receita' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {t.tipo === 'despesa' ? '-' : '+'} {formatarMoeda(t.valor)}
+                                </p>
                             </div>
                         ))}
                     </div>
@@ -218,7 +286,7 @@ const FinanceiroReport = ({ data }) => {
 };
 
 const VendasReport = ({ data }) => {
-    const { kpis = {}, funilData = [] } = data || {};
+    const { kpis = {} } = data || {};
     const totalOrcamentos = kpis.total || 0;
     const taxaConversao = kpis.conversao || 0;
     const valorAceito = kpis.valorAceito || 0;
@@ -227,10 +295,10 @@ const VendasReport = ({ data }) => {
     return (
          <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <KPICard title="Orçamentos no Período" value={totalOrcamentos} icon={FileText} />
-                <KPICard title="Taxa de Conversão" value={`${taxaConversao.toFixed(1)}%`} icon={Scaling} valueClassName="text-blue-500" />
-                <KPICard title="Valor Total Aceito" value={formatarMoeda(valorAceito)} icon={TrendingUp} valueClassName="text-green-500" />
-                <KPICard title="Ticket Médio" value={formatarMoeda(ticketMedio)} icon={DollarSign} valueClassName="text-indigo-500" />
+                <KPICard title="Propostas Emitidas" value={totalOrcamentos} icon={FileText} corIcone="text-blue-500" bgIcone="bg-blue-50" />
+                <KPICard title="Taxa de Conversão Real" value={`${taxaConversao.toFixed(1)}%`} icon={Scaling} corIcone="text-emerald-500" bgIcone="bg-emerald-50" />
+                <KPICard title="Volume de Fechamento" value={formatarMoeda(valorAceito)} icon={TrendingUp} corIcone="text-amber-500" bgIcone="bg-amber-50" />
+                <KPICard title="Ticket Médio" value={formatarMoeda(ticketMedio)} icon={DollarSign} corIcone="text-indigo-500" bgIcone="bg-indigo-50" />
             </div>
         </div>
     )
@@ -238,12 +306,43 @@ const VendasReport = ({ data }) => {
 
 const AnaliseClienteReport = ({ data = [] }) => {
     return (
-        <div>
-            <h3 className="text-lg font-bold mb-4">Ranking de Clientes por Faturamento</h3>
+        <div className="bg-white rounded-[2rem] border border-gray-200 shadow-[0_2px_15px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="p-6 md:p-8 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="text-xl font-bold text-gray-800">Ranking de Clientes (LTV)</h3>
+                <p className="text-sm text-gray-500 font-medium mt-1">Os clientes que mais geraram faturamento no período selecionado.</p>
+            </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                    <thead className="table-header"><tr><th className="p-3">Pos.</th><th className="p-3">Cliente</th><th className="p-3 text-center">Nº de Eventos</th><th className="p-3 text-right">Total Gasto</th></tr></thead>
-                    <tbody>{data.map((c, index) => (<tr key={c.id} className="border-b dark:border-gray-700"><td className="p-3 font-bold">#{index + 1}</td><td className="p-3 font-medium">{c.nome}</td><td className="p-3 text-center">{c.numEventos}</td><td className="p-3 text-right font-semibold text-green-500">{formatarMoeda(c.totalGasto)}</td></tr>))}</tbody>
+                    <thead className="bg-gray-50/80 border-b border-gray-200">
+                        <tr>
+                            <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500 w-20 text-center">Ranking</th>
+                            <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500">Identificação do Cliente</th>
+                            <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500 text-center">Nº de Eventos Fechados</th>
+                            <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500 text-right">LTV (Total Gasto)</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {data.length === 0 && <tr><td colSpan="4" className="p-16 text-center text-gray-400 font-medium">Nenhum dado gerado para este período.</td></tr>}
+                        {data.map((c, index) => (
+                            <motion.tr key={c.id} className="hover:bg-amber-50/30 transition-colors group">
+                                <td className="p-5 text-center">
+                                    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-black text-sm ${index === 0 ? 'bg-amber-100 text-amber-600' : index === 1 ? 'bg-gray-200 text-gray-600' : index === 2 ? 'bg-orange-100 text-orange-700' : 'text-gray-400'}`}>
+                                        {index + 1}º
+                                    </span>
+                                </td>
+                                <td className="p-5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold text-sm text-gray-600 border border-gray-200">
+                                            {c.nome ? c.nome.charAt(0).toUpperCase() : '?'}
+                                        </div>
+                                        <span className="font-bold text-gray-900">{c.nome}</span>
+                                    </div>
+                                </td>
+                                <td className="p-5 text-center font-bold text-gray-700">{c.numEventos}</td>
+                                <td className="p-5 text-right font-black text-emerald-600 tracking-tight">{formatarMoeda(c.totalGasto)}</td>
+                            </motion.tr>
+                        ))}
+                    </tbody>
                 </table>
             </div>
         </div>
