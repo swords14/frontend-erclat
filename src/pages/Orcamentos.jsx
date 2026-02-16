@@ -17,13 +17,13 @@ const labelPremiumClass = "block text-sm font-bold text-gray-700 mb-1.5 ml-1";
 
 const StatusBadge = ({ status }) => {
     const statusInfo = {
-        'Rascunho': { icon: Pencil, color: 'gray', label: 'Rascunho', bg: 'bg-gray-100', textCol: 'text-gray-700', border: 'border-gray-200' },
-        'Orçamento Enviado': { icon: Send, color: 'sky', label: 'Enviado', bg: 'bg-sky-50', textCol: 'text-sky-700', border: 'border-sky-200' },
-        'Aprovado': { icon: CheckCircle, color: 'emerald', label: 'Aprovado', bg: 'bg-emerald-50', textCol: 'text-emerald-700', border: 'border-emerald-200' },
-        'Recusado': { icon: XCircle, color: 'rose', label: 'Recusado', bg: 'bg-rose-50', textCol: 'text-rose-700', border: 'border-rose-200' },
-        'Follow-up': { icon: Clock, color: 'orange', label: 'Follow-up', bg: 'bg-orange-50', textCol: 'text-orange-700', border: 'border-orange-200' },
-        'Em Negociação': { icon: Tag, color: 'amber', label: 'Negociando', bg: 'bg-amber-50', textCol: 'text-amber-700', border: 'border-amber-200' }
-    }[status] || { icon: Clock, color: 'gray', label: status, bg: 'bg-gray-100', textCol: 'text-gray-700', border: 'border-gray-200' };
+        'Rascunho': { icon: Pencil, label: 'Rascunho', bg: 'bg-gray-100', textCol: 'text-gray-700', border: 'border-gray-200' },
+        'Orçamento Enviado': { icon: Send, label: 'Enviado', bg: 'bg-sky-50', textCol: 'text-sky-700', border: 'border-sky-200' },
+        'Aprovado': { icon: CheckCircle, label: 'Aprovado', bg: 'bg-emerald-50', textCol: 'text-emerald-700', border: 'border-emerald-200' },
+        'Recusado': { icon: XCircle, label: 'Recusado', bg: 'bg-rose-50', textCol: 'text-rose-700', border: 'border-rose-200' },
+        'Follow-up': { icon: Clock, label: 'Follow-up', bg: 'bg-orange-50', textCol: 'text-orange-700', border: 'border-orange-200' },
+        'Em Negociação': { icon: Tag, label: 'Negociando', bg: 'bg-amber-50', textCol: 'text-amber-700', border: 'border-amber-200' }
+    }[status] || { icon: Clock, label: status, bg: 'bg-gray-100', textCol: 'text-gray-700', border: 'border-gray-200' };
     
     return ( 
         <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 border shadow-sm tracking-wide ${statusInfo.bg} ${statusInfo.textCol} ${statusInfo.border}`}> 
@@ -129,7 +129,7 @@ export default function Orcamentos() {
             toast.success("Orçamento atualizado!", { id: toastId });
         } else {
             await createBudget(dadosDoForm);
-            toast.success("Orçamento criado com sucesso!", { id: toastId });
+            toast.success("Orçamento criado!", { id: toastId });
         }
         setModalAberto(false);
         setOrcamentoEmEdicao(null);
@@ -141,7 +141,7 @@ export default function Orcamentos() {
   };
 
   const handleExcluirOrcamento = async (budgetId) => {
-    if (window.confirm("Tem certeza de que deseja excluir este orçamento de forma permanente?")) {
+    if (window.confirm("Deseja excluir este orçamento de forma permanente?")) {
         try {
             await deleteBudget(budgetId);
             toast.success("Orçamento excluído.");
@@ -158,7 +158,7 @@ export default function Orcamentos() {
       setIsUpdatingStatus(budgetId);
       try {
           await updateBudgetStatus(budgetId, newStatus);
-          toast.success(`Status atualizado para "${newStatus}"!`);
+          toast.success(`Status atualizado!`);
           fetchData();
       } catch (error) {
           toast.error(`Erro ao atualizar status: ${error.message}`);
@@ -175,7 +175,7 @@ export default function Orcamentos() {
   const handleFecharModal = () => {
       setModalAberto(false);
       setOrcamentoEmEdicao(null);
-  }
+  };
 
   return (
     <div className="flex flex-col gap-8 p-4 md:p-8 min-h-screen">
@@ -196,9 +196,9 @@ export default function Orcamentos() {
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <CardKPI titulo="Orçamentos em Aberto" valor={dadosProcessados.emAberto} descricao="Propostas aguardando resposta" icone={FileText} corIcone="text-blue-500" bgIcone="bg-blue-50" />
-        <CardKPI titulo="Valor em Negociação" valor={formatarMoeda(dadosProcessados.valorEmAberto)} descricao="Soma das propostas em aberto" icone={DollarSign} corIcone="text-emerald-500" bgIcone="bg-emerald-50" />
-        <CardKPI titulo="Conversão Global" valor="N/A" descricao="Aceites vs Enviados (Em breve)" icone={CheckCircle} corIcone="text-amber-500" bgIcone="bg-amber-50" />
+        <CardKPI titulo="Orçamentos em Aberto" valor={dadosProcessados.emAberto} descricao="Aguardando resposta" icone={FileText} corIcone="text-blue-500" bgIcone="bg-blue-50" />
+        <CardKPI titulo="Valor em Negociação" valor={formatarMoeda(dadosProcessados.valorEmAberto)} descricao="Soma das propostas pendentes" icone={DollarSign} corIcone="text-emerald-500" bgIcone="bg-emerald-50" />
+        <CardKPI titulo="Conversão Global" valor="N/A" descricao="Status das negociações" icone={CheckCircle} corIcone="text-amber-500" bgIcone="bg-amber-50" />
       </div>
 
       <div className="space-y-4">
@@ -216,7 +216,7 @@ export default function Orcamentos() {
         {isLoading ? (
             <div className="text-center p-12 bg-white rounded-[2rem] border border-gray-200 shadow-sm">
                 <div className="animate-spin w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-gray-500 font-medium">Carregando propostas comerciais...</p>
+                <p className="text-gray-500 font-medium">Carregando...</p>
             </div> 
         ) : dadosProcessados.totalCount > 0 ? (
             <div>
@@ -225,8 +225,7 @@ export default function Orcamentos() {
                         <thead className="bg-gray-50/50 border-b border-gray-200">
                             <tr>
                                 <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500">Cliente / Evento</th>
-                                <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500">Data do Evento</th>
-                                <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500">Validade</th>
+                                <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500">Data</th>
                                 <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500">Status</th>
                                 <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500 text-right">Valor Final</th>
                                 <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500 text-center">Ações</th>
@@ -236,27 +235,21 @@ export default function Orcamentos() {
                             {dadosProcessados.filtrados.map(o => (
                                 <tr key={o.id} className="hover:bg-amber-50/30 transition-colors group">
                                     <td className="p-5">
-                                        <p className="font-bold text-gray-900">{o.client?.nome || 'Cliente Removido'}</p>
+                                        <p className="font-bold text-gray-900">{o.client?.nome || '—'}</p>
                                         <p className="text-xs text-gray-500 font-medium mt-0.5">{o.eventName || 'Sem Título'}</p>
                                     </td>
                                     <td className="p-5 font-medium text-gray-600">{o.eventDate ? new Date(o.eventDate).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '—'}</td>
-                                    <td className="p-5 font-medium text-gray-600">{o.validade ? new Date(o.validade).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '—'}</td>
                                     <td className="p-5"><StatusBadge status={o.status} /></td>
                                     <td className="p-5 text-right font-bold text-gray-900">{formatarMoeda(o.valorTotal)}</td>
                                     <td className="p-5 text-center">
                                         <div className="flex justify-center items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleAbrirModal(o)} className="p-2 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all" aria-label="Editar"><Pencil size={18} strokeWidth={2} /></button>
-                                            <button onClick={() => handleExcluirOrcamento(o.id)} className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" aria-label="Excluir"><Trash2 size={18} strokeWidth={2} /></button>
+                                            <button onClick={() => handleAbrirModal(o)} className="p-2 text-gray-400 hover:text-amber-500 rounded-lg transition-all"><Pencil size={18}/></button>
+                                            <button onClick={() => handleExcluirOrcamento(o.id)} className="p-2 text-gray-400 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={18}/></button>
                                             
-                                            {o.status !== 'Aprovado' && o.status !== 'Recusado' && (
-                                                <>
-                                                    <button onClick={() => handleUpdateStatus(o.id, 'Aprovado')} disabled={isUpdatingStatus === o.id} className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all" title="Aprovar Proposta">
-                                                        {isUpdatingStatus === o.id ? <Loader2 size={18} className="animate-spin" /> : <ThumbsUp size={18} strokeWidth={2} />}
-                                                    </button>
-                                                    <button onClick={() => handleUpdateStatus(o.id, 'Recusado')} disabled={isUpdatingStatus === o.id} className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Recusar Proposta">
-                                                        <Frown size={18} strokeWidth={2} />
-                                                    </button>
-                                                </>
+                                            {o.status !== 'Aprovado' && (
+                                                <button onClick={() => handleUpdateStatus(o.id, 'Aprovado')} disabled={isUpdatingStatus === o.id} className="p-2 text-gray-400 hover:text-emerald-500 rounded-lg transition-all">
+                                                    {isUpdatingStatus === o.id ? <Loader2 size={18} className="animate-spin" /> : <ThumbsUp size={18} />}
+                                                </button>
                                             )}
                                         </div>
                                     </td>
@@ -265,13 +258,10 @@ export default function Orcamentos() {
                         </tbody>
                     </table>
                 </div>
-                
-                {/* Visualização Mobile Omitida para brevidade de layout limpo, mantendo a responsividade do Table onde possível ou você pode reativar seu Card de Mobile com as classes novas */}
-                
                 <Pagination currentPage={currentPage} totalPages={dadosProcessados.totalPages} onPageChange={setCurrentPage} />
             </div>
         ) : (
-            <EmptyState message={termoBusca ? "Nenhuma proposta atende aos critérios da sua busca." : "Sua lista está limpa. Inicie uma nova negociação criando a primeira proposta."} onActionClick={() => handleAbrirModal(null)} />
+            <EmptyState message="Nenhuma proposta encontrada." onActionClick={() => handleAbrirModal(null)} />
         )}
       </div>
 
@@ -316,6 +306,7 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
   const initialState = { 
     clienteId: '', 
     eventName: '', 
+    status: 'Rascunho',
     eventDate: '', 
     validade: new Date(new Date().setDate(new Date().getDate() + 15)).toISOString().split('T')[0], 
     convidados: 50, 
@@ -361,6 +352,7 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
                     id: budgetCompleto.id,
                     clienteId: budgetCompleto.clientId,
                     eventName: budgetCompleto.eventName || '',
+                    status: budgetCompleto.status || 'Rascunho',
                     eventDate: budgetCompleto.eventDate ? new Date(budgetCompleto.eventDate).toISOString().split('T')[0] : '',
                     validade: budgetCompleto.validade ? new Date(budgetCompleto.validade).toISOString().split('T')[0] : initialState.validade,
                     convidados: budgetCompleto.convidados || 50,
@@ -386,8 +378,12 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
             } else {
                 setFormData({...initialState, codigoOrcamento: gerarCodigoPadrao()});
             }
-        } catch (error) { toast.error(`Erro ao carregar detalhes: ${error.message}`); aoFechar(); } 
-        finally { setIsLoadingData(false); }
+        } catch (error) { 
+            toast.error(`Erro ao carregar detalhes: ${error.message}`); 
+            aoFechar(); 
+        } finally { 
+            setIsLoadingData(false); 
+        }
     };
     if (aberto) { loadModalData(); } else { setActiveTab('info'); }
   }, [aberto, orcamentoParaEditar, aoFechar]);
@@ -433,7 +429,10 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
 
   useEffect(() => { 
     if (formData.convidados > 0) {
-        setFormData(prev => ({ ...prev, itens: prev.itens.map(item => item.unidade === 'pessoa' ? {...item, quantidade: Number(prev.convidados)} : item)}));
+        setFormData(prev => ({ 
+            ...prev, 
+            itens: prev.itens.map(item => item.unidade === 'pessoa' ? {...item, quantidade: Number(prev.convidados)} : item)
+        }));
     }
   }, [formData.convidados]);
 
@@ -445,24 +444,39 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
         return; 
     }
 
-    const dadosParaSalvar = { 
-        ...formData, 
-        clienteId: Number(formData.clienteId), // <-- CORREÇÃO AQUI (Forçando para Número para o Prisma)
+    const payload = {
+        clienteId: Number(formData.clienteId),
+        status: formData.status || "Rascunho",
+        valorTotal: Number(calculos.totalGeral),
+        eventName: formData.eventName || null,
+        eventDate: formData.eventDate ? new Date(formData.eventDate) : null,
+        validade: formData.validade ? new Date(formData.validade) : new Date(),
+        convidados: formData.convidados ? Number(formData.convidados) : null,
+        desconto: Number(formData.desconto) || 0,
+        taxaServico: Number(formData.taxaServico) || 10,
+        codigoOrcamento: formData.codigoOrcamento,
+        versao: formData.versao || "1.0",
+        observacoes: formData.observacoes || null,
+        condicoesPagamento: formData.condicoesPagamento || null,
+        localEventoNome: formData.localEventoNome || null,
+        localEventoEndereco: formData.localEventoEndereco || null,
+        localEventoCidade: formData.localEventoCidade || null,
+        localEventoEstado: formData.localEventoEstado || null,
+        localEventoCEP: formData.localEventoCEP || null,
+        horarioInicio: formData.horarioInicio || null,
+        horarioFim: formData.horarioFim || null,
+        tipoCozinha: formData.tipoCozinha || null,
+        restricoesAlimentares: formData.restricoesAlimentares || null,
+        observacoesFinanceiras: formData.observacoesFinanceiras || null,
         items: formData.itens.map(item => ({
             descricao: item.descricao,
             quantidade: Number(item.quantidade),
             valorUnitario: Number(item.valorUnitario),
-            unidade: item.unidade
-        })),
-        eventDate: formData.eventDate ? new Date(formData.eventDate) : null,
-        dataEnvio: formData.dataEnvio ? new Date(formData.dataEnvio) : null,
-        validade: formData.validade ? new Date(formData.validade) : new Date(),
-        totalGeral: Number(calculos.totalGeral)
+            unidade: item.unidade || "un"
+        }))
     };
-    
-    delete dadosParaSalvar.itens;
 
-    aoSalvar(dadosParaSalvar);
+    aoSalvar(payload);
   };
 
   return (
@@ -493,7 +507,7 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
                         {activeTab === 'info' && (
                             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                  <div className="md:col-span-2"><label className={labelPremiumClass}>Cliente Responsável*</label><select name="clienteId" value={formData.clienteId} onChange={handleChange} className={inputPremiumClass}><option value="">Selecione um cliente da base...</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+                                  <div className="md:col-span-2"><label className={labelPremiumClass}>Cliente Responsável*</label><select name="clienteId" value={formData.clienteId} onChange={handleChange} className={inputPremiumClass}><option value="">Selecione um cliente...</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
                                   <div><label className={labelPremiumClass}>Data do Evento</label><input type="date" name="eventDate" value={formData.eventDate} onChange={handleChange} className={inputPremiumClass} /></div>
                                   <div><label className={labelPremiumClass}>Convidados Previstos</label><input type="number" name="convidados" value={formData.convidados} onChange={handleChange} className={inputPremiumClass} /></div>
                                 </div>
@@ -526,17 +540,15 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
                         {activeTab === 'items' && (
                             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                                 <div><label className={labelPremiumClass}>Especificação do Serviço/Buffet</label><input type="text" name="tipoCozinha" value={formData.tipoCozinha} onChange={handleChange} className={inputPremiumClass} placeholder="Ex: Jantar Empratado 3 Tempos, Open Bar Premium" /></div>
-                                
                                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-6">
                                     <label className={labelPremiumClass}>Adicionar Itens do Acervo/Estoque</label>
                                     <div className="flex gap-4 mb-6">
                                         <select onChange={(e) => setItemSelecionado(e.target.value)} value={itemSelecionado} className={inputPremiumClass}>
-                                            <option value="">Selecione o serviço ou item...</option>
+                                            <option value="">Selecione um item...</option>
                                             {itensDeEstoque.map(s => <option key={s.id} value={s.id}>{s.nome} ({formatarMoeda(s.valor)})</option>)}
                                         </select>
                                         <button type="button" onClick={handleAddItem} className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-bold whitespace-nowrap transition-colors">Adicionar</button>
                                     </div>
-                                    
                                     <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                                         {formData.itens.length > 0 ? formData.itens.map(item => (
                                             <div key={item.id} className="flex flex-col sm:flex-row items-center justify-between bg-white border border-gray-200 p-4 rounded-xl hover:border-amber-200 transition-colors shadow-sm gap-4">
@@ -564,28 +576,24 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
                         {activeTab === 'financial' && (
                             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                               <div className="space-y-6">
-                                  <div><label className={labelPremiumClass}>Restrições Alimentares / Avisos</label><textarea name="restricoesAlimentares" value={formData.restricoesAlimentares} onChange={handleChange} rows="2" className={`${inputPremiumClass} resize-none`} placeholder="Alergias severas, preferência vegana, etc."></textarea></div>
-                                  <div><label className={labelPremiumClass}>Condições de Pagamento</label><textarea name="condicoesPagamento" value={formData.condicoesPagamento} onChange={handleChange} rows="3" className={`${inputPremiumClass} resize-none`} placeholder="Ex: 30% sinal via PIX, saldo 7 dias antes."></textarea></div>
-                                  <div><label className={labelPremiumClass}>Notas de Rodapé (Aparece no PDF)</label><textarea name="observacoes" value={formData.observacoes} onChange={handleChange} rows="3" className={`${inputPremiumClass} resize-none`} placeholder="Informações de validade, quebras, hora extra..."></textarea></div>
+                                  <div><label className={labelPremiumClass}>Restrições Alimentares / Avisos</label><textarea name="restricoesAlimentares" value={formData.restricoesAlimentares} onChange={handleChange} rows="2" className={`${inputPremiumClass} resize-none`} placeholder="Alergias severas..."></textarea></div>
+                                  <div><label className={labelPremiumClass}>Condições de Pagamento</label><textarea name="condicoesPagamento" value={formData.condicoesPagamento} onChange={handleChange} rows="3" className={`${inputPremiumClass} resize-none`} placeholder="Ex: 30% sinal..."></textarea></div>
+                                  <div><label className={labelPremiumClass}>Notas de Rodapé</label><textarea name="observacoes" value={formData.observacoes} onChange={handleChange} rows="3" className={`${inputPremiumClass} resize-none`} placeholder="Informações extras..."></textarea></div>
                               </div>
                               <div className="bg-gray-50 border border-gray-200 p-8 rounded-3xl space-y-4 h-fit shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
                                   <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><DollarSign className="text-amber-500" /> Resumo de Valores</h3>
-                                  
                                   <div className="flex justify-between items-center text-gray-600 font-medium pb-3 border-b border-gray-200/60">
                                       <span>Subtotal (Itens)</span>
                                       <span className="font-bold text-gray-800">{formatarMoeda(calculos.subtotal)}</span>
                                   </div>
-                                  
                                   <div className="flex justify-between items-center text-gray-600 font-medium pb-3 border-b border-gray-200/60">
                                       <span className="flex items-center gap-2">Desconto Aplicado <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-md font-bold">%</span></span>
                                       <input type="number" value={formData.desconto} onChange={(e) => setFormData(p => ({...p, desconto: parseFloat(e.target.value) || 0}))} className="w-24 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-right font-bold focus:border-amber-500 outline-none"/>
                                   </div>
-                                  
                                   <div className="flex justify-between items-center text-gray-600 font-medium pb-4 border-b border-gray-200">
                                       <span>Taxa de Serviço ({formData.taxaServico}%)</span>
                                       <span className="font-bold text-gray-800">{formatarMoeda(calculos.valorTaxa)}</span>
                                   </div>
-                                  
                                   <div className="flex justify-between items-end pt-2">
                                       <span className="text-lg font-bold text-gray-800">Total da Proposta</span>
                                       <span className="text-3xl font-black text-amber-500">{formatarMoeda(calculos.totalGeral)}</span>
