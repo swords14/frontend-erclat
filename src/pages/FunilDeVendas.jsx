@@ -1,53 +1,39 @@
-// Caminho: frontend/src/pages/FunilDeVendas.jsx
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNavigate } from 'react-router-dom';
 import { getFunnelData, updateBudgetStatus, createContractFromBudget, getAllUsers } from '@/services/api';
 import toast from 'react-hot-toast';
-import { DollarSign, Calendar, CheckCircle, Loader2, Play, Clock, AlertTriangle, BarChart3, ServerCrash, FileText, User } from 'lucide-react';
+import { DollarSign, Calendar, CheckCircle, Loader2, Play, ServerCrash, BarChart3, User, Target } from 'lucide-react';
 
-// --- Componentes de UI e Helpers ---
 const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 
-function ModalCriarContrato({ aberto, aoFechar, aoConfirmar, isLoading }) {
-  if (!aberto) return null;
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-center">
-        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">Gerar Contrato</h3>
-        <p className="mt-2 text-gray-600 dark:text-gray-300">Este orçamento foi aprovado. Deseja gerar o contrato para formalização e envio ao cliente?</p>
-        <div className="mt-6 flex justify-center gap-4">
-          <button onClick={aoFechar} disabled={isLoading} className="btn-secondary">Não, Apenas Aprovar</button>
-          <button onClick={aoConfirmar} disabled={isLoading} className="btn-primary w-44 flex items-center justify-center">{isLoading ? <Loader2 className="animate-spin" /> : 'Sim, Gerar Contrato'}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+const inputPremiumClass = "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all text-gray-700 font-medium";
+const labelPremiumClass = "block text-sm font-bold text-gray-700 mb-1.5 ml-1";
 
-const CardKPI = ({ titulo, valor, icone }) => (
-    <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex items-start gap-4">
-        <div className="bg-indigo-100 dark:bg-indigo-500/20 p-3 rounded-lg">{icone}</div>
+const CardKPI = ({ titulo, valor, icone: Icon, bgIcone = "bg-amber-50", corIcone = "text-amber-500" }) => (
+    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-[0_2px_15px_rgba(0,0,0,0.02)] flex items-center gap-5 transition-all duration-300 hover:border-amber-300 hover:shadow-[0_4px_20px_rgba(245,158,11,0.05)]">
+        <div className={`p-3.5 ${bgIcone} border border-gray-100 rounded-xl`}>
+            <Icon className={corIcone} size={24} strokeWidth={1.5} />
+        </div>
         <div>
-            <p className="text-sm font-semibold text-gray-500">{titulo}</p>
-            <p className="text-2xl font-bold mt-1 text-gray-800 dark:text-gray-100">{valor}</p>
+            <p className="text-sm text-gray-500 font-medium tracking-wide">{titulo}</p>
+            <p className="text-2xl font-bold text-gray-900 mt-0.5">{valor}</p>
         </div>
     </div>
 );
 
 const BarraFiltros = ({ responsaveis, filtroResponsavel, setFiltroResponsavel, filtroPeriodo, setFiltroPeriodo }) => (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-4">
+    <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-[0_2px_15px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
-            <label htmlFor="filtro-responsavel" className="label-form text-xs">Responsável</label>
-            <select id="filtro-responsavel" value={filtroResponsavel} onChange={(e) => setFiltroResponsavel(e.target.value)} className="input-form w-full">
-                <option value="todos">Todos</option>
+            <label htmlFor="filtro-responsavel" className={labelPremiumClass}>Responsável da Negociação</label>
+            <select id="filtro-responsavel" value={filtroResponsavel} onChange={(e) => setFiltroResponsavel(e.target.value)} className={inputPremiumClass}>
+                <option value="todos">Todos os membros</option>
                 {responsaveis.map(r => <option key={r.id} value={r.id}>{r.nome}</option>)}
             </select>
         </div>
         <div className="flex-1">
-            <label htmlFor="filtro-periodo" className="label-form text-xs">Período do Evento</label>
-            <select id="filtro-periodo" value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value)} className="input-form w-full">
+            <label htmlFor="filtro-periodo" className={labelPremiumClass}>Período do Evento</label>
+            <select id="filtro-periodo" value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value)} className={inputPremiumClass}>
                 <option value="todos">Qualquer Data</option>
                 <option value="hoje">Hoje</option>
                 <option value="esta-semana">Esta Semana</option>
@@ -58,20 +44,24 @@ const BarraFiltros = ({ responsaveis, filtroResponsavel, setFiltroResponsavel, f
 );
 
 const ErrorState = ({ message, onRetry }) => (
-    <div className="text-center py-16 px-6 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-500/30">
-        <ServerCrash size={48} className="mx-auto text-red-500" />
-        <h3 className="mt-4 text-xl font-semibold text-red-700 dark:text-red-300">Ocorreu um Erro</h3>
-        <p className="mt-2 text-red-600 dark:text-red-400">{message}</p>
-        <button onClick={onRetry} className="btn-primary mt-6">Tentar Novamente</button>
+    <div className="text-center py-16 px-6 bg-white rounded-[2rem] border border-red-100 shadow-sm flex flex-col items-center">
+        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
+            <ServerCrash size={40} className="text-red-400" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-800">Falha na Conexão</h3>
+        <p className="mt-2 text-gray-500 font-medium max-w-sm">{message}</p>
+        <button onClick={onRetry} className="mt-8 px-6 py-2.5 bg-red-50 text-red-600 hover:bg-red-100 font-bold rounded-xl transition-colors">
+            Tentar Novamente
+        </button>
     </div>
 );
 
 const colunasDoFunil = [
-  { id: 'Orçamento Enviado', title: 'Orçamento Enviado', color: '#3b82f6' },
-  { id: 'Follow-up', title: 'Follow-up', color: '#f97316' },
-  { id: 'Em Negociação', title: 'Em Negociação', color: '#eab308' },
-  { id: 'Aprovado', title: 'Aprovado', color: '#22c55e' },
-  { id: 'Recusado', title: 'Recusado', color: '#ef4444' },
+  { id: 'Orçamento Enviado', title: 'Orçamento Enviado', color: 'border-sky-400', bgPill: 'bg-sky-50', textPill: 'text-sky-600' },
+  { id: 'Follow-up', title: 'Follow-up', color: 'border-orange-400', bgPill: 'bg-orange-50', textPill: 'text-orange-600' },
+  { id: 'Em Negociação', title: 'Em Negociação', color: 'border-amber-400', bgPill: 'bg-amber-50', textPill: 'text-amber-600' },
+  { id: 'Aprovado', title: 'Aprovado', color: 'border-emerald-400', bgPill: 'bg-emerald-50', textPill: 'text-emerald-600' },
+  { id: 'Recusado', title: 'Recusado', color: 'border-rose-400', bgPill: 'bg-rose-50', textPill: 'text-rose-600' },
 ];
 
 const FunilDeVendas = () => {
@@ -79,8 +69,6 @@ const FunilDeVendas = () => {
   const [listaResponsaveis, setListaResponsaveis] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [modalConversaoAberto, setModalConversaoAberto] = useState(false);
-  const [orcamentoParaConverter, setOrcamentoParaConverter] = useState(null);
   const [isConverting, setIsConverting] = useState(false);
   const [filtroResponsavel, setFiltroResponsavel] = useState('todos');
   const [filtroPeriodo, setFiltroPeriodo] = useState('todos');
@@ -90,14 +78,15 @@ const FunilDeVendas = () => {
     try {
       setIsLoading(true);
       setError(null);
-      // CORREÇÃO: Passa os filtros para a API
       const [funnelDataFromApi, usersData] = await Promise.all([
           getFunnelData({ responsavelId: filtroResponsavel, periodo: filtroPeriodo }),
           getAllUsers()
       ]);
       setListaResponsaveis(usersData || []);
+      
       if (!funnelDataFromApi || typeof funnelDataFromApi !== 'object') {
-        setTodosOsCards([]); return;
+        setTodosOsCards([]); 
+        return;
       }
       const flatListOfCards = Object.values(funnelDataFromApi).flatMap(col => col.items || []);
       setTodosOsCards(flatListOfCards);
@@ -114,18 +103,21 @@ const FunilDeVendas = () => {
   const kpisGlobais = useMemo(() => {
     const aprovados = todosOsCards.filter(c => c.status === 'Aprovado');
     const recusados = todosOsCards.filter(c => c.status === 'Recusado');
-    const taxaConversao = (aprovados.length + recusados.length) > 0 ? ((aprovados.length / (aprovados.length + recusados.length)) * 100).toFixed(1) + '%' : 'N/A';
+    const taxaConversao = (aprovados.length + recusados.length) > 0 ? ((aprovados.length / (aprovados.length + recusados.length)) * 100).toFixed(1) + '%' : '0.0%';
     const valorAprovado = aprovados.reduce((sum, item) => sum + item.valorTotal, 0);
     const ticketMedio = aprovados.length > 0 ? formatCurrency(valorAprovado / aprovados.length) : formatCurrency(0);
     const valorTotalFunil = todosOsCards
         .filter(c => ['Orçamento Enviado', 'Follow-up', 'Em Negociação'].includes(c.status))
         .reduce((sum, item) => sum + item.valorTotal, 0);
+    
     return { valorTotalFunil, taxaConversao, ticketMedio };
   }, [todosOsCards]);
   
   const colunasVisiveis = useMemo(() => {
     const colunasMontadas = colunasDoFunil.reduce((acc, col) => ({ ...acc, [col.id]: { ...col, items: [] } }), {});
-    todosOsCards.forEach(card => { if (colunasMontadas[card.status]) colunasMontadas[card.status].items.push(card); });
+    todosOsCards.forEach(card => { 
+        if (colunasMontadas[card.status]) colunasMontadas[card.status].items.push(card); 
+    });
     return colunasMontadas;
   }, [todosOsCards]);
 
@@ -139,9 +131,8 @@ const FunilDeVendas = () => {
 
     try {
       await updateBudgetStatus(draggableId, destination.droppableId);
-      toast.success(`Orçamento movido para "${destination.droppableId}"!`);
-      // CORREÇÃO: A ação de gerar contrato agora é um botão no card e não um modal no drag-and-drop
-      fetchData(); // Recarrega os dados após a alteração.
+      toast.success(`Orçamento movido para "${destination.droppableId}"`);
+      fetchData(); 
     } catch (err) {
       toast.error(`Falha ao atualizar: ${err.message}`);
       setTodosOsCards(estadoOriginal);
@@ -149,15 +140,16 @@ const FunilDeVendas = () => {
   };
   
   const handleGerarContrato = async (orcamentoId) => {
+    if (isConverting) return;
     setIsConverting(true);
     try {
       const novoContrato = await createContractFromBudget(orcamentoId); 
-      toast.success(`Contrato ${novoContrato.codigoContrato} gerado!`, { icon: '📝' });
+      toast.success(`Contrato gerado com sucesso!`, { icon: '📝' });
       fetchData();
       navigate(`/contratos/${novoContrato.id}`); 
     } catch (err) {
       if (err.message.includes("Já existe um contrato")) {
-        toast.error("Este orçamento já foi convertido.");
+        toast.error("Este orçamento já foi convertido em contrato.");
       } else {
         toast.error(`Erro ao gerar contrato: ${err.message}`);
       }
@@ -167,70 +159,126 @@ const FunilDeVendas = () => {
     }
   };
 
-  const CardOrcamento = ({ item, index, colunaColor, onConvertClick }) => (
+  const CardOrcamento = ({ item, index, colunaConfig }) => (
     <Draggable key={item.id} draggableId={String(item.id)} index={index}>
         {(provided, snapshot) => (
-        <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`bg-white dark:bg-gray-700 rounded-lg shadow-md p-4 border-l-4 ${snapshot.isDragging ? 'shadow-2xl scale-105' : 'shadow-sm'}`} style={{ borderColor: colunaColor }}>
-            <p className="font-bold text-gray-800 dark:text-white pr-2">{item.client.nome}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-300">{item.eventName}</p>
-            <div className="mt-2 text-sm text-gray-500 dark:text-gray-300 space-y-1">
-                <div className="flex items-center gap-2"><DollarSign size={14} /><span>{formatCurrency(item.valorTotal)}</span></div>
-                {item.eventDate && (<div className="flex items-center gap-2"><Calendar size={14} /><span>{new Date(item.eventDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span></div>)}
+        <div 
+            ref={provided.innerRef} 
+            {...provided.draggableProps} 
+            {...provided.dragHandleProps} 
+            className={`bg-white rounded-2xl p-5 border cursor-grab active:cursor-grabbing transition-all duration-200
+                ${snapshot.isDragging 
+                    ? `shadow-2xl scale-[1.03] rotate-1 z-50 ${colunaConfig.color}` 
+                    : 'shadow-sm border-gray-100 hover:border-amber-200 hover:shadow-md'
+                }
+            `}
+        >
+            <div className="flex justify-between items-start mb-3">
+                <p className="font-bold text-gray-900 leading-tight">{item.client.nome}</p>
             </div>
-            {item.status === 'Aprovado' && (
-                <div className="mt-3 text-right">
-                    <button type="button" onClick={() => onConvertClick(item.id)} className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 flex items-center justify-end gap-1 text-sm font-semibold">
-                        <Play size={16} /> Gerar Contrato
+            
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 truncate">{item.eventName}</p>
+            
+            <div className="bg-gray-50/80 rounded-xl p-3 space-y-2 border border-gray-100 mb-3">
+                <div className="flex items-center gap-2.5 text-sm text-gray-700 font-bold">
+                    <DollarSign size={16} className="text-amber-500" />
+                    <span>{formatCurrency(item.valorTotal)}</span>
+                </div>
+                {item.eventDate && (
+                    <div className="flex items-center gap-2.5 text-xs text-gray-500 font-medium">
+                        <Calendar size={14} className="text-gray-400" />
+                        <span>{new Date(item.eventDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex items-center justify-between mt-2 h-8">
+                {item.responsavel ? (
+                     <div className="text-xs font-medium text-gray-500 flex items-center gap-1.5 bg-white border border-gray-100 px-2 py-1 rounded-lg">
+                        <User size={12} className="text-gray-400" /> 
+                        <span className="truncate max-w-[100px]">{listaResponsaveis.find(u => u.id === item.responsavel)?.nome || 'Membro'}</span>
+                    </div>
+                ) : <div />}
+
+                {item.status === 'Aprovado' && (
+                    <button 
+                        type="button" 
+                        onClick={() => handleGerarContrato(item.id)} 
+                        disabled={isConverting}
+                        className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+                    >
+                        {isConverting ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} fill="currentColor" />} 
+                        Contrato
                     </button>
-                </div>
-            )}
-            {item.status !== 'Aprovado' && item.responsavel && (
-                 <div className="mt-3 text-right text-xs text-gray-400 flex items-center gap-1 justify-end">
-                    <User size={12} /> {listaResponsaveis.find(u => u.id === item.responsavel)?.nome || 'Não atribuído'}
-                </div>
-            )}
+                )}
+            </div>
         </div>
         )}
     </Draggable>
   );
 
-  if (isLoading) return <div className="p-8 text-center"><Loader2 className="animate-spin inline-block mr-2" />A carregar funil de vendas...</div>;
+  if (isLoading) return (
+      <div className="min-h-screen bg-white p-8 flex flex-col items-center justify-center">
+          <div className="animate-spin w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full mb-4"></div>
+          <p className="text-gray-500 font-medium">Sincronizando pipeline de vendas...</p>
+      </div>
+  );
   
   return (
-    <div className="p-4 md:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <h1 className="text-3xl font-bold mb-2 text-gray-800 dark:text-gray-100">Funil de Vendas</h1>
-      <p className="text-gray-500 mb-6">Arraste os cards para atualizar o status das suas negociações.</p>
+    <div className="p-4 md:p-8 min-h-screen flex flex-col gap-8">
+        <header>
+            <h1 className="text-3xl font-light text-gray-800 tracking-wide flex items-center gap-3">
+                Funil de <span className="font-bold text-amber-600">Vendas</span>
+                <Target className="text-amber-400" size={24} />
+            </h1>
+            <p className="mt-1 text-gray-500 font-medium">Acompanhe e mova suas negociações até o fechamento.</p>
+        </header>
       
-      {error ? <ErrorState message={error.message} onRetry={fetchData} /> : (
+        {error ? <ErrorState message={error.message} onRetry={fetchData} /> : (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                <CardKPI titulo="Valor em Negociação" valor={formatCurrency(kpisGlobais.valorTotalFunil)} icone={<DollarSign className="text-indigo-500" />} />
-                <CardKPI titulo="Taxa de Conversão" valor={kpisGlobais.taxaConversao} icone={<BarChart3 className="text-indigo-500" />} />
-                <CardKPI titulo="Ticket Médio (Aprovados)" valor={kpisGlobais.ticketMedio} icone={<CheckCircle className="text-indigo-500" />} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <CardKPI titulo="Valor em Negociação" valor={formatCurrency(kpisGlobais.valorTotalFunil)} icone={DollarSign} corIcone="text-blue-500" bgIcone="bg-blue-50" />
+                <CardKPI titulo="Taxa de Conversão" valor={kpisGlobais.taxaConversao} icone={BarChart3} corIcone="text-emerald-500" bgIcone="bg-emerald-50" />
+                <CardKPI titulo="Ticket Médio (Aprovados)" valor={kpisGlobais.ticketMedio} icone={CheckCircle} corIcone="text-amber-500" bgIcone="bg-amber-50" />
             </div>
 
             <BarraFiltros responsaveis={listaResponsaveis} filtroResponsavel={filtroResponsavel} setFiltroResponsavel={setFiltroResponsavel} filtroPeriodo={filtroPeriodo} setFiltroPeriodo={setFiltroPeriodo} />
 
             <DragDropContext onDragEnd={onDragEnd}>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 mt-6">
+              <div className="flex gap-6 mt-2 overflow-x-auto pb-6 custom-scrollbar min-h-[60vh] snap-x">
                   {Object.values(colunasVisiveis).map(coluna => (
                       <Droppable key={coluna.id} droppableId={coluna.id}>
                           {(provided, snapshot) => (
-                          <div ref={provided.innerRef} {...provided.droppableProps} className="bg-gray-100 dark:bg-gray-800 rounded-xl flex flex-col">
-                              <div className="p-4 rounded-t-xl" style={{ borderTop: `4px solid ${coluna.color}` }}>
-                                  <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center justify-between">
-                                      <span>{coluna.title}</span>
-                                      <span className="text-sm font-bold bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">{coluna.items.length}</span>
-                                  </h2>
-                                  <p className="text-sm font-bold text-green-600 dark:text-green-400 mt-1">{formatCurrency(coluna.items.reduce((s, i) => s + i.valorTotal, 0))}</p>
+                          <div 
+                            ref={provided.innerRef} 
+                            {...provided.droppableProps} 
+                            className={`min-w-[320px] w-[320px] rounded-3xl flex flex-col border transition-colors snap-center
+                                ${snapshot.isDraggingOver ? 'bg-amber-50/50 border-amber-200' : 'bg-gray-50/50 border-gray-100'}
+                            `}
+                          >
+                              <div className="p-5 pb-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                      <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{coluna.title}</h2>
+                                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${coluna.bgPill} ${coluna.textPill}`}>
+                                          {coluna.items.length}
+                                      </span>
+                                  </div>
+                                  <p className="text-sm font-bold text-gray-400">
+                                      {formatCurrency(coluna.items.reduce((s, i) => s + i.valorTotal, 0))}
+                                  </p>
                               </div>
-                              <div className={`flex-grow min-h-[400px] p-4 pt-0 space-y-3 transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-100 dark:bg-indigo-900/50' : ''}`}>
-                              {coluna.items.length === 0 ? ( <div className="flex items-center justify-center h-full text-center text-gray-400 dark:text-gray-500 p-4 border-2 border-dashed rounded-lg">Nenhum card aqui.</div> ) : 
-                                coluna.items.map((item, index) => (
-                                  <CardOrcamento key={item.id} item={item} index={index} colunaColor={coluna.color} onConvertClick={handleGerarContrato} />
-                                ))
-                              }
-                              {provided.placeholder}
+
+                              <div className="flex-grow p-4 pt-2 space-y-4 overflow-y-auto custom-scrollbar">
+                                {coluna.items.length === 0 ? ( 
+                                    <div className="flex items-center justify-center h-32 text-center text-gray-400 font-medium border-2 border-dashed border-gray-200 rounded-2xl">
+                                        Solte um card aqui
+                                    </div> 
+                                ) : 
+                                    coluna.items.map((item, index) => (
+                                        <CardOrcamento key={item.id} item={item} index={index} colunaConfig={coluna} />
+                                    ))
+                                }
+                                {provided.placeholder}
                               </div>
                           </div>
                           )}
@@ -238,9 +286,8 @@ const FunilDeVendas = () => {
                   ))}
               </div>
             </DragDropContext>
-      </>
-      )}
-      {/* O modal de conversão foi removido do onDragEnd para um botão no card */}
+        </>
+        )}
     </div>
   );
 };
