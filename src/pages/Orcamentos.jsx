@@ -447,6 +447,7 @@ function ModalOrcamento({ aberto, aoFechar, aoSalvar, orcamentoParaEditar, clien
 
     const dadosParaSalvar = { 
         ...formData, 
+        clienteId: Number(formData.clienteId), // <-- CORREÇÃO AQUI (Forçando para Número para o Prisma)
         items: formData.itens.map(item => ({
             descricao: item.descricao,
             quantidade: Number(item.quantidade),

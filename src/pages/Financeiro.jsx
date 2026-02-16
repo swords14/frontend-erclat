@@ -1,10 +1,8 @@
-// Caminho do arquivo: frontend/src/components/Financeiro.jsx
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
-import { Plus, Minus, ArrowUpRight, ArrowDownLeft, Wallet, X as IconX, Clock, CheckCircle, Pencil, Trash2, Filter, XCircle, Loader2 } from 'lucide-react';
+import { Plus, Minus, ArrowUpRight, ArrowDownLeft, Wallet, X as IconX, Clock, CheckCircle, Pencil, Trash2, Filter, XCircle, Loader2, DollarSign } from 'lucide-react';
 import { format, getMonth, getYear, subMonths, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -13,44 +11,71 @@ import {
     deleteTransaction, createTransaction, updateTransaction, getEvents, getTransactionCategories
 } from '@/services/api';
 
-// --- Constantes e Funções Auxiliares ---
 const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
 
-// --- COMPONENTES AUXILIARES ---
+const inputPremiumClass = "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all text-gray-700 font-medium";
+const labelPremiumClass = "block text-sm font-bold text-gray-700 mb-1.5 ml-1";
+
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) { 
         return ( 
-            <div className="bg-gray-800/80 backdrop-blur-sm text-white p-3 rounded-lg shadow-lg border border-gray-700"> 
-                <p className="font-bold">{`Data: ${new Date(label).toLocaleDateString('pt-BR')}`}</p>
+            <div className="bg-white/95 backdrop-blur-md text-gray-800 p-4 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-gray-100"> 
+                <p className="font-bold text-gray-900 mb-2">{`Data: ${new Date(label).toLocaleDateString('pt-BR')}`}</p>
                 {payload.filter(pld => pld.value != null).map((pld, index) => ( 
-                    <p key={index} style={{ color: pld.stroke || pld.fill }}>{`${pld.name}: ${formatarMoeda(pld.value)}`}</p> 
+                    <p key={index} style={{ color: pld.stroke || pld.fill }} className="font-semibold">{`${pld.name}: ${formatarMoeda(pld.value)}`}</p> 
                 ))} 
             </div> 
         ); 
     } return null; 
 };
 
-const CardKPI = ({ icone: Icone, titulo, valor, cor }) => (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg flex items-center gap-4">
-        <div className={`p-3 rounded-full bg-opacity-20 ${cor.replace('text-', 'bg-')}`}><Icone size={24} className={cor} /></div>
-        <div><p className="text-sm text-gray-500 dark:text-gray-400">{titulo}</p><p className={`text-2xl font-bold ${cor}`}>{formatarMoeda(valor)}</p></div>
-    </motion.div>
-);
+const CardKPI = ({ icone: Icone, titulo, valor, cor }) => {
+    const bgConfig = {
+        'text-emerald-500': 'bg-emerald-50 border-emerald-100',
+        'text-rose-500': 'bg-rose-50 border-rose-100',
+        'text-blue-500': 'bg-blue-50 border-blue-100',
+        'text-amber-500': 'bg-amber-50 border-amber-100',
+    }[cor] || 'bg-gray-50 border-gray-100';
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ duration: 0.5 }} 
+            whileHover={{ y: -4 }}
+            className={`p-6 rounded-[2rem] border ${bgConfig} shadow-sm transition-all duration-300 flex items-center gap-5`}
+        >
+            <div className={`p-4 rounded-2xl bg-white shadow-sm border border-gray-100`}>
+                <Icone size={28} className={cor} strokeWidth={2} />
+            </div>
+            <div>
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-wider">{titulo}</p>
+                <p className={`text-3xl font-black mt-1 tracking-tight ${cor}`}>{formatarMoeda(valor)}</p>
+            </div>
+        </motion.div>
+    );
+};
 
 const StatusPagamentoBadge = ({ status }) => {
-    const statusInfo = { Efetivado: { icon: CheckCircle, color: 'green', label: 'Efetivado' }, Pendente: { icon: Clock, color: 'yellow', label: 'Pendente' }}[status] || { icon: Clock, color: 'gray', label: status };
-    const colors = { green: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300', yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300', gray: 'bg-gray-100 text-gray-800' };
-    return (<span className={`status-badge ${colors[statusInfo.color]}`}><statusInfo.icon size={14}/>{statusInfo.label}</span>);
+    const statusInfo = { 
+        Efetivado: { icon: CheckCircle, color: 'emerald', label: 'Efetivado', bg: 'bg-emerald-50', textCol: 'text-emerald-700', border: 'border-emerald-200' }, 
+        Pendente: { icon: Clock, color: 'amber', label: 'Pendente', bg: 'bg-amber-50', textCol: 'text-amber-700', border: 'border-amber-200' }
+    }[status] || { icon: Clock, color: 'gray', label: status, bg: 'bg-gray-100', textCol: 'text-gray-700', border: 'border-gray-200' };
+    
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm tracking-wide ${statusInfo.bg} ${statusInfo.textCol} ${statusInfo.border}`}>
+            <statusInfo.icon size={12} strokeWidth={2.5}/>{statusInfo.label}
+        </span>
+    );
 };
 
 const initialKpiLayout = [
-    { id: 'kpi-receitaRealizada', titulo: "Receita Realizada (Filtro)", icone: ArrowUpRight, cor: "text-green-500", valorKey: 'receitaRealizada' },
-    { id: 'kpi-despesaRealizada', titulo: "Despesa Realizada (Filtro)", icone: ArrowDownLeft, cor: "text-red-500", valorKey: 'despesaRealizada' },
-    { id: 'kpi-saldo', titulo: "Saldo (Filtro)", icone: Wallet, corKey: 'saldo', valorKey: 'saldo' },
-    { id: 'kpi-pendente', titulo: "Pendente (Receber - Pagar)", icone: Clock, cor: "text-yellow-500", valorKey: 'pendenteLiquido' },
+    { id: 'kpi-receitaRealizada', titulo: "Receitas", icone: ArrowUpRight, cor: "text-emerald-500", valorKey: 'receitaRealizada' },
+    { id: 'kpi-despesaRealizada', titulo: "Despesas", icone: ArrowDownLeft, cor: "text-rose-500", valorKey: 'despesaRealizada' },
+    { id: 'kpi-saldo', titulo: "Caixa (Saldo)", icone: Wallet, corKey: 'saldo', valorKey: 'saldo' },
+    { id: 'kpi-pendente', titulo: "A Receber", icone: Clock, cor: "text-amber-500", valorKey: 'pendenteLiquido' },
 ];
 
-// --- COMPONENTE PRINCIPAL ---
 export default function Financeiro() {
     const [transacoes, setTransacoes] = useState([]);
     const [clientes, setClientes] = useState([]);
@@ -61,7 +86,15 @@ export default function Financeiro() {
     const [modalAberto, setModalAberto] = useState(false);
     const [tipoModal, setTipoModal] = useState('receita');
     const [transacaoEmEdicao, setTransacaoEmEdicao] = useState(null);
-    const [filtros, setFiltros] = useState({ dataInicio: '', dataFim: '', categoria: 'todas', status: 'todos' });
+    
+    const hoje = new Date();
+    const [filtros, setFiltros] = useState({ 
+        dataInicio: startOfMonth(hoje).toISOString().split('T')[0], 
+        dataFim: endOfMonth(hoje).toISOString().split('T')[0], 
+        categoria: 'todas', 
+        status: 'todos' 
+    });
+    
     const [kpiCards, setKpiCards] = useState(initialKpiLayout);
 
     const fetchData = useCallback(async () => {
@@ -80,7 +113,7 @@ export default function Financeiro() {
             setFornecedores(fornecedoresRes);
             setCategorias(categoriasRes);
         } catch (error) {
-            toast.error(error.message || 'Erro ao carregar dados.');
+            toast.error(error.message || 'Erro ao carregar dados financeiros.');
         } finally {
             setIsLoading(false);
         }
@@ -90,7 +123,6 @@ export default function Financeiro() {
         fetchData();
     }, [fetchData]);
 
-    // CORREÇÃO: A variável transacoesFiltradas precisa ser definida aqui
     const transacoesFiltradas = useMemo(() => {
         return transacoes.filter(t => {
             const dataParaComparacao = t.status === 'Efetivado' ? new Date(t.data) : (t.dataVencimento ? new Date(t.dataVencimento) : new Date(t.data));
@@ -99,6 +131,7 @@ export default function Financeiro() {
             if (dataInicio) dataInicio.setHours(0,0,0,0);
             const dataFim = filtros.dataFim ? new Date(filtros.dataFim) : null;
             if (dataFim) dataFim.setHours(23,59,59,999);
+            
             if (dataInicio && dataParaComparacao < dataInicio) return false;
             if (dataFim && dataParaComparacao > dataFim) return false;
             if (filtros.categoria !== 'todas' && t.categoria !== filtros.categoria) return false;
@@ -146,7 +179,7 @@ export default function Financeiro() {
         const apiCall = isEditing ? () => updateTransaction(transacaoEmEdicao.id, novaTransacao) : () => createTransaction(novaTransacao);
         try {
             await apiCall();
-            toast.success(`Transação ${isEditing ? 'atualizada' : 'criada'} com sucesso!`);
+            toast.success(`Transação ${isEditing ? 'atualizada' : 'registrada'} com sucesso!`);
             fecharModal();
             fetchData();
         } catch (error) {
@@ -155,10 +188,10 @@ export default function Financeiro() {
     };
     
     const handleUpdateTransactionStatus = async (transactionId, newStatus) => {
-        if (!window.confirm(`Tem certeza que deseja mudar o status desta transação para "${newStatus}"?`)) return;
+        if (!window.confirm(`Mudar o status para "${newStatus}"?`)) return;
         try {
             await updateTransactionStatus(transactionId, newStatus);
-            toast.success(`Status da transação atualizado para "${newStatus}"!`);
+            toast.success(`Pagamento ${newStatus}!`);
             fetchData();
         } catch (error) {
             toast.error(error.message);
@@ -166,10 +199,10 @@ export default function Financeiro() {
     };
 
     const handleExcluirTransacao = async (id) => {
-        if(window.confirm("Tem certeza que deseja excluir esta transação?")) {
+        if(window.confirm("Atenção: A exclusão é permanente. Deseja continuar?")) {
             try {
                 await deleteTransaction(id);
-                toast.success('Transação excluída.');
+                toast.success('Transação removida do caixa.');
                 fetchData();
             } catch (error) {
                 toast.error(error.message);
@@ -189,29 +222,69 @@ export default function Financeiro() {
         const [reorderedItem] = newKpiCards.splice(source.index, 1);
         newKpiCards.splice(destination.index, 0, reorderedItem);
         setKpiCards(newKpiCards);
-        // TODO: Implementar a chamada da API para salvar o novo layout
     };
 
-    if (isLoading) { return <div className="text-center p-10"><Loader2 className="animate-spin inline-block mr-2" /> A carregar dados financeiros...</div>; }
+    if (isLoading) { return <div className="flex flex-col items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin text-amber-500 w-12 h-12 mb-4" /> <p className="text-gray-500 font-bold tracking-wide">Sincronizando caixa...</p></div>; }
 
     return (
-        <div className="flex flex-col gap-8 p-4 md:p-6">
-            <div className="flex flex-wrap justify-between items-center gap-4">
-                <div><h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Painel Financeiro</h1><p className="mt-1 text-gray-500 dark:text-gray-400">A saúde financeira do seu negócio em um só lugar.</p></div>
-                <div className="flex gap-2">
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => abrirModal('receita')} className="btn-success flex items-center gap-2"><Plus size={20} /> Nova Receita</motion.button>
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => abrirModal('despesa')} className="btn-danger flex items-center gap-2"><Minus size={20} /> Nova Despesa</motion.button>
+        <div className="flex flex-col gap-8 p-4 md:p-8 min-h-screen">
+            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-light text-gray-800 tracking-wide flex items-center gap-3">
+                        <span className="font-bold text-amber-600">Gestão</span> Financeira
+                        <DollarSign className="text-amber-400" size={28} />
+                    </h1>
+                    <p className="mt-1 text-gray-500 font-medium">Controle o fluxo de caixa, receitas e despesas.</p>
                 </div>
-            </div>
-            {/* O resto do JSX (filtros, dashboard, tabela) continua aqui... */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center gap-2 mb-4"><Filter size={20} className="text-indigo-500" /><h3 className="text-lg font-bold text-gray-700 dark:text-gray-200">Filtros</h3></div>
+                <div className="flex gap-3">
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} onClick={() => abrirModal('receita')} className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-md shadow-emerald-500/20 flex items-center gap-2 transition-all">
+                        <Plus size={20} strokeWidth={2.5}/> Nova Receita
+                    </motion.button>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} onClick={() => abrirModal('despesa')} className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold shadow-md shadow-rose-500/20 flex items-center gap-2 transition-all">
+                        <Minus size={20} strokeWidth={2.5}/> Nova Despesa
+                    </motion.button>
+                </div>
+            </header>
+            
+            <div className="bg-white p-5 rounded-[2rem] border border-gray-200 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
+                <div className="flex items-center gap-2 mb-4 px-2">
+                    <Filter size={20} className="text-amber-500" />
+                    <h3 className="text-lg font-bold text-gray-800">Filtros de Período</h3>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    <input type="date" name="dataInicio" value={filtros.dataInicio} onChange={handleFiltroChange} className="input-form"/>
-                    <input type="date" name="dataFim" value={filtros.dataFim} onChange={handleFiltroChange} className="input-form"/>
-                    <select name="status" value={filtros.status} onChange={handleFiltroChange} className="input-form"><option value="todos">Todos os Status</option><option value="Efetivado">Efetivado</option><option value="Pendente">Pendente</option></select>
-                    <select name="categoria" value={filtros.categoria} onChange={handleFiltroChange} className="input-form"><option value="todas">Todas as Categorias</option>{[...categorias.receitas, ...categorias.despesas].map(c => <option key={c} value={c}>{c}</option>)}</select>
-                    <button onClick={limparFiltros} className="btn-secondary flex items-center justify-center gap-2"><XCircle size={18} /> Limpar</button>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-2">Data Inicial</label>
+                        <input type="date" name="dataInicio" value={filtros.dataInicio} onChange={handleFiltroChange} className={inputPremiumClass}/>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-2">Data Final</label>
+                        <input type="date" name="dataFim" value={filtros.dataFim} onChange={handleFiltroChange} className={inputPremiumClass}/>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-2">Status</label>
+                        <select name="status" value={filtros.status} onChange={handleFiltroChange} className={inputPremiumClass}>
+                            <option value="todos">Todos os Status</option>
+                            <option value="Efetivado">Efetivado (Pago)</option>
+                            <option value="Pendente">Pendente (A Pagar/Receber)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-2">Categoria</label>
+                        <select name="categoria" value={filtros.categoria} onChange={handleFiltroChange} className={inputPremiumClass}>
+                            <option value="todas">Todas as Categorias</option>
+                            <optgroup label="Receitas">
+                                {categorias.receitas.map(c => <option key={c} value={c}>{c}</option>)}
+                            </optgroup>
+                            <optgroup label="Despesas">
+                                {categorias.despesas.map(c => <option key={c} value={c}>{c}</option>)}
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div className="flex items-end">
+                        <button onClick={limparFiltros} className="w-full h-[46px] px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                            <XCircle size={18} /> Limpar
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -222,10 +295,14 @@ export default function Financeiro() {
                             {kpiCards.map((card, index) => {
                                 let valor = dadosFinanceiros[card.valorKey];
                                 let cor = card.cor; 
-                                if (card.id === 'kpi-saldo') cor = valor >= 0 ? "text-blue-500" : "text-red-500";
+                                if (card.id === 'kpi-saldo') cor = valor >= 0 ? "text-blue-500" : "text-rose-500";
                                 return (
                                     <Draggable key={card.id} draggableId={card.id} index={index}>
-                                        {(provided) => (<div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="h-full"><CardKPI icone={card.icone} titulo={card.titulo} valor={valor} cor={cor} /></div>)}
+                                        {(provided) => (
+                                            <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="h-full cursor-grab active:cursor-grabbing outline-none">
+                                                <CardKPI icone={card.icone} titulo={card.titulo} valor={valor} cor={cor} />
+                                            </div>
+                                        )}
                                     </Draggable>
                                 );
                             })}
@@ -235,32 +312,84 @@ export default function Financeiro() {
                 </Droppable>
             </DragDropContext>
             
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-x-auto">
-                <h3 className="text-lg font-bold p-4 text-gray-700 dark:text-gray-200">Transações (Filtradas)</h3>
-                <table className="w-full text-left">
-                    <thead className="table-header"><tr><th className="p-4">Descrição</th><th className="p-4 hidden md:table-cell">Data</th><th className="p-4 hidden sm:table-cell">Cliente/Fornecedor</th><th className="p-4">Status</th><th className="p-4 text-right">Valor</th><th className="p-4 text-center">Ações</th></tr></thead>
-                    <tbody>
-                        {transacoesFiltradas.sort((a,b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(t => (
-                            <tr key={t.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <td className="p-4 font-medium text-gray-800 dark:text-gray-200">{t.descricao}<br/><span className={`text-xs font-bold ${t.tipo === 'receita' ? 'text-green-500' : 'text-red-500'}`}>{t.tipo.toUpperCase()}</span></td>
-                                <td className="p-4 hidden md:table-cell text-gray-500 dark:text-gray-400">{new Date(t.data).toLocaleDateString('pt-BR')}{t.status === 'Pendente' && t.dataVencimento && <span className="block text-xs text-yellow-600 dark:text-yellow-400">Vence em: {new Date(t.dataVencimento).toLocaleDateString('pt-BR')}</span>}</td>
-                                <td className="p-4 hidden sm:table-cell text-gray-500 dark:text-gray-400">{t.client?.nome || t.supplier?.nome || t.event?.title || 'N/A'}</td>
-                                <td className="p-4"><StatusPagamentoBadge status={t.status}/></td>
-                                <td className={`p-4 text-right font-semibold ${t.tipo === 'receita' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatarMoeda(t.valor)}</td>
-                                <td className="p-4 text-center">
-                                    <div className="flex justify-center items-center gap-2">
-                                        {t.status === 'Pendente' && <button onClick={() => handleUpdateTransactionStatus(t.id, 'Efetivado')} className="p-2 text-green-500 hover:text-green-700" title="Marcar como Efetivado"><CheckCircle size={18} /></button>}
-                                        <button onClick={() => abrirModal(t.tipo, t)} className="p-2 text-gray-500 hover:text-indigo-600" title="Editar"><Pencil size={18} /></button>
-                                        <button onClick={() => handleExcluirTransacao(t.id)} className="p-2 text-gray-500 hover:text-red-600" title="Excluir"><Trash2 size={18} /></button>
-                                    </div>
-                                </td>
+            <div className="bg-white rounded-[2rem] border border-gray-200 shadow-[0_2px_15px_rgba(0,0,0,0.02)] overflow-hidden">
+                <div className="p-6 border-b border-gray-100 bg-gray-50/30">
+                    <h3 className="text-xl font-bold text-gray-800">Fluxo de Lançamentos</h3>
+                    <p className="text-sm text-gray-500 mt-1">Histórico de movimentações de acordo com o filtro aplicado.</p>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50/80 border-b border-gray-200">
+                            <tr>
+                                <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500">Descrição / Tipo</th>
+                                <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500 hidden md:table-cell">Data de Competência</th>
+                                <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500 hidden sm:table-cell">Vínculo (Cliente/Fornecedor)</th>
+                                <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500">Status</th>
+                                <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500 text-right">Valor Registrado</th>
+                                <th className="p-5 text-xs uppercase tracking-wider font-bold text-gray-500 text-center">Gestão</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {transacoesFiltradas.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="p-16 text-center text-gray-400 font-medium">Nenhuma transação encontrada para este período ou filtro.</td>
+                                </tr>
+                            ) : (
+                                transacoesFiltradas.sort((a,b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(t => (
+                                    <tr key={t.id} className="hover:bg-amber-50/30 transition-colors group">
+                                        <td className="p-5">
+                                            <p className="font-bold text-gray-900 mb-0.5">{t.descricao}</p>
+                                            <span className={`text-[10px] uppercase font-black tracking-widest px-2 py-0.5 rounded-md ${t.tipo === 'receita' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                {t.tipo}
+                                            </span>
+                                        </td>
+                                        <td className="p-5 hidden md:table-cell">
+                                            <p className="font-medium text-gray-700">{new Date(t.data).toLocaleDateString('pt-BR')}</p>
+                                            {t.status === 'Pendente' && t.dataVencimento && (
+                                                <p className="text-xs font-bold text-amber-600 mt-1 flex items-center gap-1"><Clock size={12}/> Vence em: {new Date(t.dataVencimento).toLocaleDateString('pt-BR')}</p>
+                                            )}
+                                        </td>
+                                        <td className="p-5 hidden sm:table-cell">
+                                            <p className="font-medium text-gray-600">{t.client?.nome || t.supplier?.nome || t.event?.title || 'Lançamento Avulso'}</p>
+                                        </td>
+                                        <td className="p-5"><StatusPagamentoBadge status={t.status}/></td>
+                                        <td className={`p-5 text-right font-black tracking-tight ${t.tipo === 'receita' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                            {t.tipo === 'despesa' ? '-' : ''} {formatarMoeda(t.valor)}
+                                        </td>
+                                        <td className="p-5 text-center">
+                                            <div className="flex justify-center items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                                                {t.status === 'Pendente' && (
+                                                    <button onClick={() => handleUpdateTransactionStatus(t.id, 'Efetivado')} className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Marcar como Pago/Recebido">
+                                                        <CheckCircle size={18} strokeWidth={2}/>
+                                                    </button>
+                                                )}
+                                                <button onClick={() => abrirModal(t.tipo, t)} className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Editar Lançamento">
+                                                    <Pencil size={18} strokeWidth={2}/>
+                                                </button>
+                                                <button onClick={() => handleExcluirTransacao(t.id)} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Excluir">
+                                                    <Trash2 size={18} strokeWidth={2}/>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <ModalTransacao aberto={modalAberto} aoFechar={fecharModal} aoSalvar={handleSalvarTransacao} tipoInicial={tipoModal} transacaoInicial={transacaoEmEdicao} clientes={clientes} fornecedores={fornecedores} eventos={eventos} categorias={categorias} />
+            <ModalTransacao 
+                aberto={modalAberto} 
+                aoFechar={fecharModal} 
+                aoSalvar={handleSalvarTransacao} 
+                tipoInicial={tipoModal} 
+                transacaoInicial={transacaoEmEdicao} 
+                clientes={clientes} 
+                fornecedores={fornecedores} 
+                eventos={eventos} 
+                categorias={categorias} 
+            />
         </div>
     );
 }
@@ -289,9 +418,6 @@ function ModalTransacao({ aberto, aoFechar, aoSalvar, tipoInicial, transacaoInic
                 clientId: transacaoInicial.clientId || null,
                 supplierId: transacaoInicial.supplierId || null,
                 eventId: transacaoInicial.eventId || null,
-                observacoes: transacaoInicial.observacoes || '',
-                linkComprovante: transacaoInicial.linkComprovante || '',
-                numeroDocumento: transacaoInicial.numeroDocumento || ''
             } : initialState;
             setFormData(editingState);
             setErrors({});
@@ -306,7 +432,7 @@ function ModalTransacao({ aberto, aoFechar, aoSalvar, tipoInicial, transacaoInic
         if (!formData.metodoPagamento) newErrors.metodoPagamento = 'Forma de Pagamento é obrigatória.';
         if (!formData.data) newErrors.data = 'Data é obrigatória.';
         if (formData.status === 'Pendente' && !formData.dataVencimento) {
-            newErrors.dataVencimento = 'Data de Vencimento é obrigatória para status Pendente.';
+            newErrors.dataVencimento = 'Obrigatório para status Pendente.';
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -315,7 +441,7 @@ function ModalTransacao({ aberto, aoFechar, aoSalvar, tipoInicial, transacaoInic
     const handleSubmit = (e) => { 
         e.preventDefault(); 
         if (!validateForm()) {
-            toast.error('Por favor, corrija os erros no formulário.');
+            toast.error('Preencha os campos obrigatórios.');
             return;
         }
         const dataToSave = { 
@@ -333,6 +459,7 @@ function ModalTransacao({ aberto, aoFechar, aoSalvar, tipoInicial, transacaoInic
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
     };
+    
     const handleTipoChange = (novoTipo) => {
         setFormData(prev => ({...prev, tipo: novoTipo, categoria: '', clientId: null, supplierId: null, eventId: null}));
     };
@@ -343,50 +470,99 @@ function ModalTransacao({ aberto, aoFechar, aoSalvar, tipoInicial, transacaoInic
     return (
         <AnimatePresence>
             {aberto && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col">
-                        <div className="p-6 flex justify-between items-center flex-shrink-0"><h2 className="text-2xl font-bold">{transacaoInicial ? 'Editar' : 'Nova'} Transação</h2><button onClick={aoFechar} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><IconX size={22}/></button></div>
-                        <form onSubmit={handleSubmit} className="flex-grow overflow-hidden flex flex-col">
-                            <div className="px-8 pt-2 flex-shrink-0">
-                                <div className="p-1 bg-gray-100 dark:bg-gray-700 rounded-lg flex">
-                                    <button type="button" onClick={() => handleTipoChange('receita')} className={`flex-1 p-2 rounded-md font-semibold transition-colors ${isReceita ? 'bg-white dark:bg-gray-900 text-green-600' : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Receita</button>
-                                    <button type="button" onClick={() => handleTipoChange('despesa')} className={`flex-1 p-2 rounded-md font-semibold transition-colors ${!isReceita ? 'bg-white dark:bg-gray-900 text-red-600' : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Despesa</button>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white rounded-[2rem] shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden">
+                        <div className="p-6 md:p-8 flex justify-between items-center border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
+                            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                                <Wallet className={isReceita ? "text-emerald-500" : "text-rose-500"} size={28} />
+                                {transacaoInicial ? 'Editar Lançamento' : 'Novo Lançamento'}
+                            </h2>
+                            <button onClick={aoFechar} className="p-2 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"><IconX size={24}/></button>
+                        </div>
+                        
+                        <form onSubmit={handleSubmit} className="flex-grow flex flex-col">
+                            <div className="px-8 pt-6 pb-2">
+                                <div className="flex bg-gray-100 p-1.5 rounded-xl">
+                                    <button type="button" onClick={() => handleTipoChange('receita')} className={`flex-1 py-2.5 rounded-lg font-bold transition-all ${isReceita ? 'bg-white shadow-sm text-emerald-600' : 'text-gray-500 hover:text-gray-700'}`}>Entrada (Receita)</button>
+                                    <button type="button" onClick={() => handleTipoChange('despesa')} className={`flex-1 py-2.5 rounded-lg font-bold transition-all ${!isReceita ? 'bg-white shadow-sm text-rose-600' : 'text-gray-500 hover:text-gray-700'}`}>Saída (Despesa)</button>
                                 </div>
                             </div>
                             
-                            <div className="p-8 space-y-6 overflow-y-auto flex-grow max-h-[65vh]">
-                                <div className="space-y-4"><h3 className="text-xl font-semibold text-gray-800 dark:text-white">Detalhes Principais</h3>
-                                    <div><label className="label-form">Descrição*</label><input type="text" name="descricao" value={formData.descricao || ''} onChange={handleInputChange} className={`input-form w-full ${errors.descricao ? 'input-error' : ''}`} required/></div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                                        <div><label className="label-form">Valor (R$)*</label><input type="number" name="valor" step="0.01" value={formData.valor || ''} onChange={handleInputChange} className={`input-form w-full ${isReceita ? 'input-success' : 'input-danger'} ${errors.valor ? 'input-error' : ''}`} required/></div>
-                                        <div><label className="label-form">Data de Competência*</label><input type="date" name="data" value={formData.data || ''} onChange={handleInputChange} className={`input-form w-full ${errors.data ? 'input-error' : ''}`} required/></div>
+                            <div className="p-8 space-y-8 overflow-y-auto flex-grow max-h-[60vh] custom-scrollbar">
+                                <div className="space-y-6">
+                                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">Detalhes do Valor</h3>
+                                    <div>
+                                        <label className={labelPremiumClass}>Descrição do Lançamento*</label>
+                                        <input type="text" name="descricao" value={formData.descricao || ''} onChange={handleInputChange} className={`${inputPremiumClass} ${errors.descricao ? 'border-rose-400 bg-rose-50' : ''}`} placeholder="Ex: Pagamento de Fornecedor, Sinal do Cliente..."/>
                                     </div>
-                                    <div><label className="label-form">Categoria*</label><select name="categoria" value={formData.categoria || ''} onChange={handleInputChange} className={`input-form w-full ${errors.categoria ? 'input-error' : ''}`} required><option value="">Selecione...</option>{categoriasOpcoes.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className={labelPremiumClass}>Valor (R$)*</label>
+                                            <div className="relative">
+                                                <span className={`absolute left-4 top-1/2 -translate-y-1/2 font-black ${isReceita ? 'text-emerald-500' : 'text-rose-500'}`}>R$</span>
+                                                <input type="number" name="valor" step="0.01" value={formData.valor || ''} onChange={handleInputChange} className={`${inputPremiumClass} pl-12 font-black text-lg ${errors.valor ? 'border-rose-400 bg-rose-50' : ''}`} placeholder="0.00"/>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className={labelPremiumClass}>Data de Competência*</label>
+                                            <input type="date" name="data" value={formData.data || ''} onChange={handleInputChange} className={`${inputPremiumClass} ${errors.data ? 'border-rose-400 bg-rose-50' : ''}`}/>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className={labelPremiumClass}>Categoria Financeira*</label>
+                                        <select name="categoria" value={formData.categoria || ''} onChange={handleInputChange} className={`${inputPremiumClass} ${errors.categoria ? 'border-rose-400 bg-rose-50' : ''}`}>
+                                            <option value="">Selecione uma categoria estrutural...</option>
+                                            {categoriasOpcoes.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
 
-                                <div className="border-t dark:border-gray-700 pt-6 space-y-4"><h3 className="text-xl font-semibold text-gray-800 dark:text-white">Vínculos (Opcional)</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                                        {isReceita ? (
-                                            <div><label className="label-form">Cliente</label><select name="clientId" value={formData.clientId || ''} onChange={handleInputChange} className="input-form w-full"><option value="">Vincular a um cliente...</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
-                                        ) : (
-                                            <div><label className="label-form">Fornecedor</label><select name="supplierId" value={formData.supplierId || ''} onChange={handleInputChange} className="input-form w-full"><option value="">Vincular a um fornecedor...</option>{fornecedores.map(f=><option key={f.id} value={f.id}>{f.nome}</option>)}</select></div>
+                                <div className="space-y-6 pt-6 border-t border-gray-100">
+                                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">Status e Vínculos</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className={labelPremiumClass}>Status do Lançamento*</label>
+                                            <select name="status" value={formData.status || ''} onChange={handleInputChange} className={inputPremiumClass}>
+                                                <option value="Efetivado">Efetivado (Valor em Caixa)</option>
+                                                <option value="Pendente">Pendente (À Pagar / À Receber)</option>
+                                            </select>
+                                        </div>
+                                        {formData.status === 'Pendente' && (
+                                            <motion.div initial={{opacity:0, x: -10}} animate={{opacity:1, x: 0}}>
+                                                <label className={labelPremiumClass}>Data de Vencimento*</label>
+                                                <input type="date" name="dataVencimento" value={formData.dataVencimento || ''} onChange={handleInputChange} className={`${inputPremiumClass} ${errors.dataVencimento ? 'border-rose-400 bg-rose-50' : ''}`}/>
+                                            </motion.div>
                                         )}
-                                        <div><label className="label-form">Evento</label><select name="eventId" value={formData.eventId || ''} onChange={handleInputChange} className="input-form w-full"><option value="">Vincular a um evento...</option>{eventos.map(e=><option key={e.id} value={e.id}>{e.title}</option>)}</select></div>
-                                    </div>
-                                </div>
-                                
-                                <div className="border-t dark:border-gray-700 pt-6 space-y-4"><h3 className="text-xl font-semibold text-gray-800 dark:text-white">Pagamento</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                                        <div><label className="label-form">Status*</label><select name="status" value={formData.status || ''} onChange={handleInputChange} className={`input-form w-full ${errors.status ? 'input-error' : ''}`}><option value="Efetivado">Efetivado</option><option value="Pendente">Pendente</option></select></div>
-                                        {formData.status === 'Pendente' && <motion.div initial={{opacity:0}} animate={{opacity:1}}><label className="label-form">Data de Vencimento*</label><input type="date" name="dataVencimento" value={formData.dataVencimento || ''} onChange={handleInputChange} className={`input-form w-full ${errors.dataVencimento ? 'input-error' : ''}`} required/></motion.div>}
-                                        <div><label className="label-form">Forma de Pagamento*</label><select name="metodoPagamento" value={formData.metodoPagamento || ''} onChange={handleInputChange} className={`input-form w-full ${errors.metodoPagamento ? 'input-error' : ''}`} required><option>PIX</option><option>Cartão de Crédito</option><option>Boleto</option><option>Transferência</option><option>Dinheiro</option></select></div>
+                                        <div>
+                                            <label className={labelPremiumClass}>Forma de Pagamento</label>
+                                            <select name="metodoPagamento" value={formData.metodoPagamento || ''} onChange={handleInputChange} className={inputPremiumClass}>
+                                                <option>PIX</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Boleto Bancário</option><option>Transferência (TED/DOC)</option><option>Dinheiro em Espécie</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className={labelPremiumClass}>Vincular Evento (Opcional)</label>
+                                            <select name="eventId" value={formData.eventId || ''} onChange={handleInputChange} className={inputPremiumClass}>
+                                                <option value="">Sem vínculo direto...</option>
+                                                {eventos.map(e=><option key={e.id} value={e.id}>{e.title}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className={labelPremiumClass}>{isReceita ? 'Cliente Vinculado (Opcional)' : 'Fornecedor Vinculado (Opcional)'}</label>
+                                            {isReceita ? (
+                                                <select name="clientId" value={formData.clientId || ''} onChange={handleInputChange} className={inputPremiumClass}><option value="">Selecionar cliente da base...</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select>
+                                            ) : (
+                                                <select name="supplierId" value={formData.supplierId || ''} onChange={handleInputChange} className={inputPremiumClass}><option value="">Selecionar fornecedor da base...</option>{fornecedores.map(f=><option key={f.id} value={f.id}>{f.nome}</option>)}</select>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="p-6 flex justify-end gap-4 border-t dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl">
-                                <button type="button" onClick={aoFechar} className="btn-secondary">Cancelar</button>
-                                <button type="submit" className="btn-primary">{transacaoInicial ? 'Salvar Alterações' : 'Salvar Transação'}</button>
+                            <div className="p-6 md:p-8 flex justify-end gap-4 border-t border-gray-100 bg-gray-50/50 flex-shrink-0 rounded-b-[2rem]">
+                                <button type="button" onClick={aoFechar} className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition-colors">Cancelar</button>
+                                <button type="submit" className={`px-8 py-2.5 text-white rounded-xl font-bold shadow-md transition-all ${isReceita ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20' : 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/20'}`}>
+                                    {transacaoInicial ? 'Atualizar Registro' : 'Confirmar Lançamento'}
+                                </button>
                             </div>
                         </form>
                     </motion.div>
@@ -394,4 +570,4 @@ function ModalTransacao({ aberto, aoFechar, aoSalvar, tipoInicial, transacaoInic
             )}
         </AnimatePresence>
     );
-};
+}
